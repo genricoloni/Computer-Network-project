@@ -36,23 +36,46 @@ int cmd_to_code(char* code){
 }
 
 
-void invio_messaggio(void)
+void invio_messaggio(){}
 
 
 //la funzione si occupa di estrarre credenziali e password dalla stringa,
 //inviarle al server e aspettare una conferma di avvenuta registrazione
-void singup(int code, char*user[], char*pass[], int sock){
-    
-    int ret;
-    uint32_t msg_len;
+void singup(int code, struct credenziali credenziali, int sock){
+    int ret, ack;
+    uint32_t msg_len, code_t;
+    struct credenziali_t c_t;
 
-    
-    
+    //serializzazione
+    code_t = htonl(code);
 
-    //invio della password al server
+    //invio del codice al server
+    ret = send(socket, (void*)code_t, sizeof(uint32_t), 0);
+    //printf("Ok invio codice");
 
-    //aspetto la conferma dal server 
-    printf("credenziali registrate correttmente!\n");
+    //aspetto conferma
+    ret = recv(socket, (void*)code_t, sizeof(uint32_t), 0);
+    printf("Ok ricezione ack");
+    ack = ntohl(code_t);
+    if(ack != ACK){
+        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        exit(-1);
+    }
+
+    //serializzazione
+    *c_t.user = htonl(credenziali.username);
+    *c_t.pass = htonl(credenziali.password);
+
+    //invio la struct contenente le credenziali
+    ret = send(socket, (void*)&c_t, sizeof(c_t), 0);
+
+    //aspetto conferma
+    ret = recv(socket, (void*)code, sizeof(uint32_t), 0);
+    ack = ntohl(ack);
+    if(ack != ACK){
+        perror("Errore in fase di registrazione, riavvio dell'applicazione necessario\n");
+        exit(-1);
+    }
     return;
 }
 

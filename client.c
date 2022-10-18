@@ -13,7 +13,7 @@ int main(int argc, char* argv[]){
 
     struct credenziali credenziali;
 
-    bool connected = false, conn_error = false, cmd_err = false;
+    bool connected = false, conn_error = false, cmd_err = false, su = false;
 
     // strutture per indirizzi
     struct sockaddr_in server_addr, client_addr, client_listener_addr, gp_addr;
@@ -57,10 +57,16 @@ int main(int argc, char* argv[]){
         printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<AREA DI ACCESSO>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         printf("1)signup port user password -->per registrarsi al servizio\n");
         printf("2)in     port user password -->per  accedere   al servizio\n");
+
         if(conn_error == true)
             perror("Errore in fase di connessione col server, verificare la porta;\n");
+
         if(cmd_err == true)
             printf("+++Comando [%s] non riconosciuto+++\n", command);
+
+        if(su == true)
+            printf("credenziali registrate correttmente!\n");
+        
         conn_error = false;
         cmd_err = false;
         fgets(buffer, 1024 - 1, stdin);
@@ -89,7 +95,9 @@ int main(int argc, char* argv[]){
 
         switch (code){
             case SIGNUP_CODE:
-                singup(code, user, password, server_com);
+                singup(code, credenziali, server_com);
+                su = true;
+                system("clear");
                 break;
 
             case IN_CODE:
