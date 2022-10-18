@@ -9,4 +9,4 @@ server: server.o costanti.h
 	gcc -o server server.c -Wall
 # pulizia dei file della compilazione (eseguito con ‘make clean’ da terminale)
 clean:
-	rm *o client server
+	rm  client server
