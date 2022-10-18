@@ -14,6 +14,9 @@
 #define STDIN 0
 
 
-
+struct credenziali{
+    char username[USERN_CHAR];
+    char password[PW_CHAR];
+}
 
 #endif /* CHAT_H */

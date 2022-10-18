@@ -4,15 +4,18 @@ int DEVICE_PORT;
 
 int main(int argc, char* argv[]){
     system("clear");
-    char command[MAXCMD], port[MAXPORT], user[USERN_CHAR], password[PW_CHAR];
+    char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE];
     int code;
     int caso;
     int server_com, cl_listener, ret;
     int fdmax = 0;
 
-    bool connected = false, conn_error = false;
+    struct credenziali credenziali;
 
+    bool connected = false, conn_error = false, cmd_err = false;
+
+    // strutture per indirizzi
     struct sockaddr_in server_addr, client_addr, client_listener_addr, gp_addr;
 
     fd_set master, readfds;
@@ -56,30 +59,37 @@ int main(int argc, char* argv[]){
         printf("2)in     port user password -->per  accedere   al servizio\n");
         if(conn_error == true)
             perror("Errore in fase di connessione col server, verificare la porta;\n");
-
-        scanf("%s", buffer);
-        printf("%s", buffer);
-        //estraggo la prima 'parola' dalla stringa inserita, che è il comando
-        extractor(buffer, command, port, user, password);         
+        if(cmd_err == true)
+            printf("+++Comando [%s] non riconosciuto+++\n", command);
+        conn_error = false;
+        cmd_err = false;
+        fgets(buffer, 1024 - 1, stdin);
+		sscanf(buffer, "%s %s %s %s", command, port, credenziali.username, credenziali.password);
+		
+         
+      
         //estraggo la seconda 'parola' dalla stringa inserita, che contiene la porta
         code = cmd_to_code(command);
-        printf("%s\n%s\n%s\n%s\n%s\n",buffer, command, port, user, password );
 
         if(connected == false){
+
             //mi connetto al server usando la porta inerita in input
             server_addr.sin_port = htons(atoi(port));
+
             ret = connect(server_com, (struct sockaddr*)&server_addr, sizeof(server_addr));
+
             if (ret < 0){
                 conn_error = true;
                 system("clear");
                 continue;            
             }
             connected = true;
+            printf("<<<<<<<<<<<<<<<<<<<<<<<<CONNESSIONE RIUSCITA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         }
 
         switch (code){
             case SIGNUP_CODE:
-                singup(buffer);
+                singup(code, user, password, server_com);
                 break;
 
             case IN_CODE:
@@ -88,7 +98,7 @@ int main(int argc, char* argv[]){
                 break;
 
             default:
-                printf("Comando non riconosciuto:");
+                cmd_err = true;
                 break;
     }   
         if(caso == 1)

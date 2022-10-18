@@ -35,24 +35,19 @@ int cmd_to_code(char* code){
     
 }
 
-//data una stringa, la divide in altre 4 stringhe utili per
-//le funzionalità di signup e login
-void extractor(char* buffer, char* cmd, char* port, char* user, char* pass){
-    cmd = strtok(buffer, " ");
-    port = strtok(NULL, " ");
-    user = strtok (NULL, " ");
-    pass = strtok(NULL, " ");
-}
 
-
+void invio_messaggio(void)
 
 
 //la funzione si occupa di estrarre credenziali e password dalla stringa,
 //inviarle al server e aspettare una conferma di avvenuta registrazione
-void singup(char* buffer[]){
+void singup(int code, char*user[], char*pass[], int sock){
     
+    int ret;
+    uint32_t msg_len;
 
-    //invio dell'username al server
+    
+    
 
     //invio della password al server
 
