@@ -3,20 +3,19 @@
 int DEVICE_PORT;
 
 int main(int argc, char* argv[]){
-    system("clear");
+    //system("clear");
     char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE];
     int code;
-    int caso;
     int server_com, cl_listener, ret;
     int fdmax = 0;
 
     struct credenziali credenziali;
 
-    bool connected = false, conn_error = false, cmd_err = false, su = false;
+    bool connected = false, conn_error = false, cmd_err = false, su = false, reg = false;
 
     // strutture per indirizzi
-    struct sockaddr_in server_addr, client_addr, client_listener_addr, gp_addr;
+    struct sockaddr_in server_addr, client_addr, client_listener_addr;
 
     fd_set master, readfds;
 
@@ -37,10 +36,12 @@ int main(int argc, char* argv[]){
     //aggiungp il socket appena creato alla lista dei socket da monitorare
     FD_SET(STDIN, &master);
 
+	
+
     //pulizia memoria e gestione indirizzi del CLIENT
-    memset(&client_listener_addr, 0, sizeof(client_listener_addr));
+    memset(&client_addr, 0, sizeof(client_addr));
     client_listener_addr.sin_family = AF_INET;
-    client_listener_addr.sin_port = DEVICE_PORT;
+    client_listener_addr.sin_port = htons(atoi(argv[1]));
     inet_pton(AF_INET, "127.0.0.1", &client_listener_addr.sin_addr);
 
     cl_listener = socket(AF_INET, SOCK_STREAM, 0);
@@ -66,61 +67,57 @@ int main(int argc, char* argv[]){
 
         if(su == true)
             printf("credenziali registrate correttmente!\n");
-        
+
+        if(reg == true)
+            printf("Utente già registrato!\n");
+
         conn_error = false;
         cmd_err = false;
+        reg = false;
         fgets(buffer, 1024 - 1, stdin);
 		sscanf(buffer, "%s %s %s %s", command, port, credenziali.username, credenziali.password);
 		
-         
-      
-        //estraggo la seconda 'parola' dalla stringa inserita, che contiene la porta
         code = cmd_to_code(command);
 
         if(connected == false){
-
-            //mi connetto al server usando la porta inerita in input
+            printf("tento la connessione");
+            //mi connetto al server usando la porta inserita in input
             server_addr.sin_port = htons(atoi(port));
 
             ret = connect(server_com, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
             if (ret < 0){
                 conn_error = true;
-                system("clear");
+                ////system("clear");
                 continue;            
             }
+            
             connected = true;
             printf("<<<<<<<<<<<<<<<<<<<<<<<<CONNESSIONE RIUSCITA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         }
-
+        printf("mi sono cnnesso");
         switch (code){
             case SIGNUP_CODE:
-                singup(code, credenziali, server_com);
+                printf("Sono prima della signup");            
+                reg = signup_c(code, credenziali, server_com);
                 su = true;
-                system("clear");
+                printf("Sono dopo la signup");
+                //system("clear");
                 break;
 
             case IN_CODE:
                 //in caso di successo della in posso passare al menu principale e uscire dunque da questo loop
-                caso = login(buffer, DEVICE_PORT);
+                //caso = login(buffer, DEVICE_PORT);
                 break;
 
             default:
                 cmd_err = true;
+                //system("clear");
                 break;
     }   
-        if(caso == 1)
-            break;
         
-
-
-
+    
     }
     
-
-
-
-
-
     return 0;
 }

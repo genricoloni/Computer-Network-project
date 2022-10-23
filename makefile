@@ -3,10 +3,10 @@
 all: client server
 # make rule per il client
 client: client.c utils.c costanti.h
-	gcc -o client client.c -Wall
+	gcc -o client client.c -g -Wall
 # make rule per il server
-server: server.o costanti.h
-	gcc -o server server.c -Wall
+server: server.c utils.c costanti.h
+	gcc -o server server.c -g -Wall
 # pulizia dei file della compilazione (eseguito con ‘make clean’ da terminale)
 clean:
 	rm  client server
