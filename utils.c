@@ -43,12 +43,10 @@ bool check_presenza_utente(struct credenziali cred){
     struct credenziali temp_cr;
 
     while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
-        if(strcmp(temp_cr.username, cred.username) == 0){
-            fclose(cr);
+        if(strcmp(cred.username, temp_cr.username) == 0){
             return false;
         }
     }
-    fclose(cr);
     return true;
 }
 
@@ -70,6 +68,11 @@ void signup_s(int sock){
     struct credenziali cred;
     printf("Dentro Signup\n");
 
+    res = ACK;
+    res_t = htonl(res);
+    
+    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+    
     msg_len = ntohl(sizeof(cred));
     //ricevo le credenziali
     recv(sock, (void*)&cred, msg_len, 0);
@@ -78,7 +81,7 @@ void signup_s(int sock){
 
     
     
-    if(check_presenza_utente(cred) == true){
+    if(check_presenza_utente(cred) == false){
         //invio il segnale di errore "utente già registrato"
         res = ALRDY_REG;
         res_t = htonl(res);
@@ -95,6 +98,7 @@ void signup_s(int sock){
     printf("prima della send\n");
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     printf("dopo send\n");
+    fflush(stdin);
     return;
     
     
@@ -114,7 +118,7 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
 
     //serializzazione
 
-    printf("%s", credenziali.username);
+    printf("%s\n", credenziali.username);
 
     msg_len = sizeof(uint32_t);
 
@@ -122,17 +126,18 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
 
     //invio del codice al server
     send(sock, (void*)&code_t, msg_len, 0);
+    printf("dopo send\n");
     //printf("Ok invio codice");f
 
     //aspetto conferma
-    //ret = recv(socket, (void*)code_t, sizeof(uint32_t), 0);
-    //printf("Ok ricezione ack");
-    //ack = ntohl(code_t);
-    //printf("%d", ack);
-    //if(ack != ACK){
-    //    perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
-    //    exit(-1);
-    //}
+    recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
+    printf("Ok ricezione ack");
+    ack = ntohl(code_t);
+    printf("%d", ack);
+    if(ack != ACK){
+        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        exit(-1);
+    }
 
     //serializzazione
     msg_len = htonl(sizeof(credenziali));
