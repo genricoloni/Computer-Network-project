@@ -44,9 +44,11 @@ bool check_presenza_utente(struct credenziali cred){
 
     while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
         if(strcmp(cred.username, temp_cr.username) == 0){
+            fclose(cr);
             return false;
         }
     }
+    fclose(cr);
     return true;
 }
 
@@ -104,14 +106,13 @@ void signup_s(int sock){
 
 //la funzione si occupa di estrarre credenziali e password dalla stringa,
 //inviarle al server e aspettare una conferma di avvenuta registrazione
-bool signup_c(int code, struct credenziali credenziali, int sock){
+bool send_credential_c(int code, struct credenziali credenziali, int sock){
     int ack;
     uint32_t msg_len, code_t;
 
 
     //serializzazione
 
-    printf("%s\n", credenziali.username);
 
     msg_len = sizeof(uint32_t);
 
@@ -123,7 +124,7 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
     ack = ntohl(code_t);
-    printf("%d", ack);
+
     if(ack != ACK){
         perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
         exit(-1);
@@ -144,10 +145,7 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
 }
 
 int login(char* buffer, int port){
-    /*devo inviare i dati e 
-    una volta concluso correttamente
-    il processo di login, visualizzare
-    il menu principale con le nuove opzioni*/
+
 
     return 1;
 }

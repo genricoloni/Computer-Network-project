@@ -85,7 +85,7 @@ int main(int argc, char* argv[]){
         if(code == -1){
             cmd_err = true;
             system("clear");
-            continue;;
+            continue;
         }
 
         if(connected == false){
@@ -106,7 +106,7 @@ int main(int argc, char* argv[]){
         printf("mi sono cnnesso\n");
         switch (code){
             case SIGNUP_CODE:            
-                reg = signup_c(code, credenziali, server_com);
+                reg = send_credential_c(code, credenziali, server_com);
                 su = reg;
                 system("clear");
                 break;

@@ -85,7 +85,7 @@ int main(int argc, char* argv[]){
                         uint32_t code_t;
                         ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);;
                         if(ret == 0){
-                            printf("dopo recv con ret == 0");/*
+                            printf("dopo recv con ret == 0");
                             // il client ha chiuso il socket, quindi
                             // chiudo il socket connesso sul server
                             close(i);
@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
                             printf("CHIUSURA client %d rilevata!\n", i);
                             fflush(stdout);
                 
-                            continue;*/
+                            continue;
                         }
                     
                      
