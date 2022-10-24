@@ -71,7 +71,7 @@ bool check_login_utente(struct credenziali cred){
 //la funzione aggiugne l'utente user alla lista degli utenti registrati, con la sua password
 //da usare dopo che si è verificato che l'username non è già stato registrato
 void registra_utente(struct credenziali cred){
-    FILE *fptr = fopen("reg_users.txt", "ab");
+    FILE *fptr = fopen("reg_users.txt", "a");
       fwrite(&cred, sizeof(cred), 1, fptr);
       fclose(fptr);
 }

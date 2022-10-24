@@ -11,7 +11,11 @@ int main(int argc, char* argv[]){
     port = findPort(argc, argv);
 
     printf("<<<<<<<<<<<<<<SERVER ONLINE SULLA PORTA  %d>>>>>>>>>>>>>> \n", port);
-
+      printf("/////////// COMANDI SERVER ////////////\n\n");
+      printf("help - mostra una breve descrizione dei comandi\n");
+      printf("list - mostra lista utenti online\n");
+      printf("esc  - chiude il server\n");
+      printf("//////////////////////////////////////\n\n");
     
 
     //char buffer[4096];
@@ -112,6 +116,7 @@ int main(int argc, char* argv[]){
                             break;
                         case IN_CODE:
                             printf("debug in");
+                            login_s(i);
                             break;
 
                         default:
