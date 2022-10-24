@@ -65,11 +65,19 @@ int main(int argc, char* argv[]){
         if(cmd_err == true)
             printf("+++Comando [%s] non riconosciuto+++\n", command);
 
+<<<<<<< HEAD
         if(reg == true)
             printf("Utente già registrato!\n");
         else
             printf("credenziali registrate correttmente!\n");
 
+=======
+        if(su == true)
+            printf("credenziali registrate correttmente!\n");
+
+        if(reg == true)
+            printf("Utente già registrato!\n");
+>>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
 
         conn_error = false;
         cmd_err = false;
@@ -95,12 +103,22 @@ int main(int argc, char* argv[]){
             connected = true;
             printf("<<<<<<<<<<<<<<<<<<<<<<<<CONNESSIONE RIUSCITA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         }
+<<<<<<< HEAD
         printf("mi sono cnnesso\n");
         switch (code){
             case SIGNUP_CODE:
                 printf("Sono prima della signup\n");            
                 reg = signup_c(code, credenziali, server_com);
                 printf("Sono dopo la signup\n");
+=======
+        printf("mi sono cnnesso");
+        switch (code){
+            case SIGNUP_CODE:
+                printf("Sono prima della signup");            
+                reg = signup_c(code, credenziali, server_com);
+                su = true;
+                printf("Sono dopo la signup");
+>>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
                 //system("clear");
                 break;
 

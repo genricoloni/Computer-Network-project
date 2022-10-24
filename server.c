@@ -10,9 +10,13 @@ int main(int argc, char* argv[]){
     int port;
     port = findPort(argc, argv);
 
+<<<<<<< HEAD
     printf("<<<<<<<<<<<<<<SERVER ONLINE SULLA PORTA  %d>>>>>>>>>>>>>> \n", port);
 
     
+=======
+    printf("La porta selezionata è %d \n", port);
+>>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
 
     //char buffer[4096];
     FD_ZERO(&master);
@@ -111,14 +115,21 @@ int main(int argc, char* argv[]){
                         case SIGNUP_CODE:
                             //codice riconosciuto: invio primo ack
                             printf("debug signup\n");
+<<<<<<< HEAD
                             fflush(stdout);
+=======
+>>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
                             //res = ACK;
                             //res_t = htonl(res);
                             //ret = send(i, (void*)res_t, sizeof(uint32_t), 0);
                             signup_s(i);
+<<<<<<< HEAD
                             fflush(stdout);
                             printf("DAIIII PORCODDIOOOOOOOOOOO\n");
                             fflush(stdout);
+=======
+                            fflush(stdin);
+>>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
                             printf("dopo signup\n");
                             
                             break;
