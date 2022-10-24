@@ -17,7 +17,7 @@
 #define STDIN 0
 
 struct utenti_online{
-    char user[USERN_CHAR];
+    char username[USERN_CHAR];
     int socket;
     struct utenti_online* pointer;
 };

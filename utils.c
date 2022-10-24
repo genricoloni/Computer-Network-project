@@ -40,7 +40,29 @@ int cmd_to_code(char* code){
 }
 
 
+/********************************************************************************************************/
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY SULLE LISTE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+/********************************************************************************************************/
 
+//la funzione viene chiamata dal server quando un utente effettua un login: 
+//verrà aggiunto alla liusta di utenti online
+void inserisci_utente(struct utenti_online **head, char *Username, uint32_t socket)
+{
+      struct utenti_online *node = (struct utenti_online *)malloc(sizeof(struct utenti_online));
+      node->pointer = NULL;
+      node->socket = socket;
+      strcpy(node->username, Username);
+
+      // il nodo puntato da elem è gia inzializzato quando chiamo la routine
+      if (*head == NULL)
+            *head = node;
+      else
+      { // piazza elem in testa alla lista
+            node->pointer = *head;
+            *head = node;
+      }
+
+}
 
 
 /********************************************************************************************************/
@@ -91,8 +113,6 @@ void registra_utente(struct credenziali cred){
 
 
 
-
-
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DELLE OPERAZIONI DEL SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /********************************************************************************************************/
@@ -131,12 +151,13 @@ void signup_s(int sock){
     res_t = htonl(res);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     fflush(stdout);
+    printf("UTENTE %s REGISTRATO AL SERVIZIO!\n", cred.username);
     return;
     
     }
 
 //effettua l'operazione di log-in di un utente su richiesta di un device
-void login_s(int sock){
+bool login_s(int sock, struct utenti_online **testa){
     int res;
     uint32_t msg_len, res_t;
     struct credenziali cred;
@@ -145,7 +166,6 @@ void login_s(int sock){
     res_t = htonl(res);
     //invio ack di ricezione codice
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-    printf("PROVA");
     msg_len = (sizeof(cred));
 
     //ricevo le credenziali
@@ -158,12 +178,15 @@ void login_s(int sock){
         res = IN_ERR;
         res_t = htonl(res);
         send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-        return;
+        return false;
     }
     res = ACK;
     res_t = htonl(res);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-    return;
+
+    inserisci_utente(testa, cred.username, sock);
+
+    return true;
 
    
 }

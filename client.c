@@ -96,7 +96,7 @@ int main(int argc, char* argv[]){
 
             if (ret < 0){
                 conn_error = true;
-                ////system("clear");
+                system("clear");
                 continue;            
             }
             
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]){
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 printf("Menu principale\n");
 while(1){
-    
+
 }
     
     return 0;

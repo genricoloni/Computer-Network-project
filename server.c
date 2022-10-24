@@ -6,10 +6,11 @@ int main(int argc, char* argv[]){
     fd_set master, readfds;
 
     struct sockaddr_in server_addr, client_addr;
-    struct utenti_online* utenti_online = NULL;m
+    struct utenti_online* utenti_online = NULL;
 
     int port;
     port = findPort(argc, argv);
+    bool res;
 
     printf("<<<<<<<<<<<<<<SERVER ONLINE SULLA PORTA  %d>>>>>>>>>>>>>> \n", port);
       printf("/////////// COMANDI SERVER ////////////\n\n");
@@ -106,24 +107,29 @@ int main(int argc, char* argv[]){
                     
                      
                         code = ntohl(code_t);
-
+                        
                         
                         switch (code)
                         {
                         case SIGNUP_CODE:
                             //codice riconosciuto
                             signup_s(i);
+                            //system("clear");
                             
                             break;
                         case IN_CODE:
-                            printf("debug in");
-                            login_s(i);
+                            
+                            fflush(stdout);
+                            
+                            res = login_s(i, &utenti_online);
+                            if(res == true)
+                                printf("UTENTE  %s ONLINE\n", utenti_online->username);
                             break;
 
                         default:
                             break;
                         }
-                        system("clear");
+                        //system("clear");
                         
                     }
                 }
