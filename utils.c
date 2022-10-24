@@ -82,16 +82,11 @@ void signup_s(int sock){
     recv(sock, (void*)&cred, msg_len, 0);
 
     printf("Credenziali ricevute:\n %s \n %s\n", cred.username, cred.password);
-<<<<<<< HEAD
     fflush(stdout);
-=======
-
->>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
     
     
     if(check_presenza_utente(cred) == false){
         //invio il segnale di errore "utente già registrato"
-<<<<<<< HEAD
         printf("dentro if di check credenziali\n");
         res = ALRDY_REG;
         res_t = htonl(res);
@@ -101,14 +96,6 @@ void signup_s(int sock){
         printf("dopo send\n");
         return;
     }fflush(stdin);
-=======
-        res = ALRDY_REG;
-        res_t = htonl(res);
-        
-        send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-        return;
-    }
->>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
     printf("dopo check presenza\n");
     //scrivo le credenziali su file
     registra_utente(cred);
