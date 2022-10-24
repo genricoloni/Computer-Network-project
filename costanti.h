@@ -16,6 +16,12 @@
 
 #define STDIN 0
 
+struct utenti_online{
+    char user[USERN_CHAR];
+    int socket;
+    struct utenti_online* pointer;
+};
+
 // le credenziali che devono essere inviate vengono memorizzate dal client in questa struttura dati
 struct credenziali{
     char username[USERN_CHAR];

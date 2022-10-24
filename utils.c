@@ -13,6 +13,10 @@
 
 typedef enum { false, true } bool;
 
+/********************************************************************************************************/
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER CLIENT E SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+/********************************************************************************************************/
+
 //Funzione che permette di trovare la port
 int findPort(int argc, char* argv[]){
     int port = 4242;
@@ -36,8 +40,14 @@ int cmd_to_code(char* code){
 }
 
 
+
+
+
+/********************************************************************************************************/
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+/********************************************************************************************************/
 //la funzione restituisce false se l'username non è 
-//gia presente nela lista di utenti registrati
+//gia presente tra gli utenti registrati
 bool check_presenza_utente(struct credenziali cred){
     FILE *cr = fopen("reg_users.txt", "rb");
     struct credenziali temp_cr;
@@ -52,6 +62,8 @@ bool check_presenza_utente(struct credenziali cred){
     return true;
 }
 
+//la funzione restituisce true se l'username è gia presente
+//tra gli utenti registrati && la password associata è corretta
 bool check_login_utente(struct credenziali cred){
     FILE *cr = fopen("reg_users.txt", "rb");
     struct credenziali temp_cr;
@@ -77,6 +89,13 @@ void registra_utente(struct credenziali cred){
 }
 
 
+
+
+
+
+/********************************************************************************************************/
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DELLE OPERAZIONI DEL SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+/********************************************************************************************************/
 
 //effetta l'operazione di registrazione delle credenziali di un utente che intende registrarsi al servizio
 void signup_s(int sock){
@@ -116,10 +135,48 @@ void signup_s(int sock){
     
     }
 
+//effettua l'operazione di log-in di un utente su richiesta di un device
+void login_s(int sock){
+    int res;
+    uint32_t msg_len, res_t;
+    struct credenziali cred;
+
+    res = ACK;
+    res_t = htonl(res);
+    //invio ack di ricezione codice
+    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+    printf("PROVA");
+    msg_len = (sizeof(cred));
+
+    //ricevo le credenziali
+    recv(sock, (void*)&cred, msg_len, 0);
+
+    
+    //controllo correttezza credenziali
+    if(check_login_utente(cred) == false){
+        //le credenziali non sono corrette
+        res = IN_ERR;
+        res_t = htonl(res);
+        send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+        return;
+    }
+    res = ACK;
+    res_t = htonl(res);
+    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+    return;
+
+   
+}
 
 
 
-//la funzione si occupa di estrarre credenziali e password dalla stringa,
+
+
+
+/********************************************************************************************************/
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DELLE OPERAZIONI DEL CLIENT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+/********************************************************************************************************/
+//la funzione si occupa di estrarre credenziali dalla stringa,
 //inviarle al server e aspettare una conferma di avvenuta registrazione
 bool signup_c(int code, struct credenziali credenziali, int sock){
     int ack;
@@ -156,40 +213,8 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
     return false;
 }
 
-
-
-void login_s(int sock){
-    int res;
-    uint32_t msg_len, res_t;
-    struct credenziali cred;
-
-    res = ACK;
-    res_t = htonl(res);
-    //invio ack di ricezione codice
-    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-    printf("PROVA");
-    msg_len = (sizeof(cred));
-
-    //ricevo le credenziali
-    recv(sock, (void*)&cred, msg_len, 0);
-
-    
-    //controllo correttezza credenziali
-    if(check_login_utente(cred) == false){
-        //le credenziali non sono corrette
-        res = IN_ERR;
-        res_t = htonl(res);
-        send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-        return;
-    }
-    res = ACK;
-    res_t = htonl(res);
-    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-    return;
-
-   
-}
-
+//la funzione si occupa di estrarre le credenziali dalla stringa,
+//inviarle al server e aspettare uan conferma di avvenuto log-in
 bool login_c(int code, struct credenziali credenziali, int sock){
     int ack;
     uint32_t msg_len, code_t;
@@ -224,6 +249,3 @@ bool login_c(int code, struct credenziali credenziali, int sock){
         return false;
     return true;
 }
-
-
-

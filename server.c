@@ -6,6 +6,7 @@ int main(int argc, char* argv[]){
     fd_set master, readfds;
 
     struct sockaddr_in server_addr, client_addr;
+    struct utenti_online* utenti_online = NULL;m
 
     int port;
     port = findPort(argc, argv);
