@@ -73,11 +73,7 @@ void signup_s(int sock){
     
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     
-<<<<<<< HEAD
     msg_len = (sizeof(cred));
-=======
-    msg_len = ntohl(sizeof(cred));
->>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
     //ricevo le credenziali
     recv(sock, (void*)&cred, msg_len, 0);
 
@@ -105,11 +101,7 @@ void signup_s(int sock){
     printf("prima della send\n");
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     printf("dopo send\n");
-<<<<<<< HEAD
     fflush(stdout);
-=======
-    fflush(stdin);
->>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
     return;
     
     
@@ -142,15 +134,9 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
 
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
-<<<<<<< HEAD
     printf("Ok ricezione ack\n");
     ack = ntohl(code_t);
     printf("%d\n", ack);
-=======
-    printf("Ok ricezione ack");
-    ack = ntohl(code_t);
-    printf("%d", ack);
->>>>>>> e7c7997e51e8f8ea31c6de959ecb44b6615cfcd0
     if(ack != ACK){
         perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
         exit(-1);
