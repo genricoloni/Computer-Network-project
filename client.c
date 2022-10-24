@@ -3,7 +3,7 @@
 int DEVICE_PORT;
 
 int main(int argc, char* argv[]){
-    //system("clear");
+    
     char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE];
     int code;
@@ -12,12 +12,14 @@ int main(int argc, char* argv[]){
 
     struct credenziali credenziali;
 
-    bool connected = false, conn_error = false, cmd_err = false, reg = false;
+    bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false;
 
     // strutture per indirizzi
     struct sockaddr_in server_addr, client_addr, client_listener_addr;
 
     fd_set master, readfds;
+
+    system("clear");
 
 	FD_ZERO(&master);
 	FD_ZERO(&readfds);
@@ -67,7 +69,8 @@ int main(int argc, char* argv[]){
 
         if(reg == true)
             printf("Utente già registrato!\n");
-        else
+
+        if(su == false)
             printf("credenziali registrate correttmente!\n");
 
 
@@ -79,8 +82,13 @@ int main(int argc, char* argv[]){
 		
         code = cmd_to_code(command);
 
+        if(code == -1){
+            cmd_err = true;
+            system("clear");
+            continue;;
+        }
+
         if(connected == false){
-            printf("tento la connessione");
             //mi connetto al server usando la porta inserita in input
             server_addr.sin_port = htons(atoi(port));
 
@@ -97,11 +105,10 @@ int main(int argc, char* argv[]){
         }
         printf("mi sono cnnesso\n");
         switch (code){
-            case SIGNUP_CODE:
-                printf("Sono prima della signup\n");            
+            case SIGNUP_CODE:            
                 reg = signup_c(code, credenziali, server_com);
-                printf("Sono dopo la signup\n");
-                //system("clear");
+                su = reg;
+                system("clear");
                 break;
 
             case IN_CODE:

@@ -66,7 +66,6 @@ void signup_s(int sock){
     int res;
     uint32_t msg_len, res_t;
     struct credenziali cred;
-    printf("Dentro Signup\n");
 
     res = ACK;
     res_t = htonl(res);
@@ -77,35 +76,26 @@ void signup_s(int sock){
     //ricevo le credenziali
     recv(sock, (void*)&cred, msg_len, 0);
 
-    printf("Credenziali ricevute:\n %s \n %s\n", cred.username, cred.password);
     fflush(stdout);
     
     
     if(check_presenza_utente(cred) == false){
         //invio il segnale di errore "utente già registrato"
-        printf("dentro if di check credenziali\n");
         res = ALRDY_REG;
         res_t = htonl(res);
         fflush(stdin);
-        printf("prima di send\n");
         send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-        printf("dopo send\n");
         return;
-    }fflush(stdin);
-    printf("dopo check presenza\n");
+    }
+    fflush(stdin);
     //scrivo le credenziali su file
     registra_utente(cred);
     //invio ACK di conferma
     res = ACK;
     res_t = htonl(res);
-    printf("prima della send\n");
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-    printf("dopo send\n");
     fflush(stdout);
     return;
-    
-    
-    //verifico che l'utente non sia già registrato
     
     }
 
@@ -129,14 +119,11 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
 
     //invio del codice al server
     send(sock, (void*)&code_t, msg_len, 0);
-    printf("dopo send\n");
-    //printf("Ok invio codice");f
 
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
-    printf("Ok ricezione ack\n");
     ack = ntohl(code_t);
-    printf("%d\n", ack);
+    printf("%d", ack);
     if(ack != ACK){
         perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
         exit(-1);

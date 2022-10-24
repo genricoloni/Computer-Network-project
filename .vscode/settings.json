@@ -1,0 +1,18 @@
+{
+    "files.associations": {
+        "fstream": "c",
+        "functional": "c",
+        "istream": "c",
+        "new": "c",
+        "ostream": "c",
+        "sstream": "c",
+        "typeinfo": "c",
+        "clocale": "c",
+        "cstddef": "c",
+        "cstdio": "c",
+        "cstdlib": "c",
+        "cstring": "c",
+        "ctime": "c",
+        "cwchar": "c"
+    }
+}

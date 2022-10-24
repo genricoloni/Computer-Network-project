@@ -80,12 +80,10 @@ int main(int argc, char* argv[]){
                     }
                     else{
                         
-                        
-                        int code, res;
-                        uint32_t code_t, res_t;
-                        printf("codice con lo switch, controlla anche la disconnessione\n");
-                        ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);
-                        printf("dopo recv\n");
+
+                        int code;
+                        uint32_t code_t;
+                        ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);;
                         if(ret == 0){
                             printf("dopo recv con ret == 0");/*
                             // il client ha chiuso il socket, quindi
@@ -103,23 +101,13 @@ int main(int argc, char* argv[]){
                     
                      
                         code = ntohl(code_t);
-                        printf("%d\n", code);
-                        printf("prima dello switch\n");
+
                         
                         switch (code)
                         {
                         case SIGNUP_CODE:
-                            //codice riconosciuto: invio primo ack
-                            printf("debug signup\n");
-                            fflush(stdout);
-                            //res = ACK;
-                            //res_t = htonl(res);
-                            //ret = send(i, (void*)res_t, sizeof(uint32_t), 0);
+                            //codice riconosciuto
                             signup_s(i);
-                            fflush(stdout);
-                            printf("DAIIII PORCODDIOOOOOOOOOOO\n");
-                            fflush(stdout);
-                            printf("dopo signup\n");
                             
                             break;
                         case IN_CODE:
@@ -127,10 +115,6 @@ int main(int argc, char* argv[]){
                             break;
 
                         default:
-                            printf("Impossibile gestire la richiesta: codice non riconosciuto");
-                            res = ERR_CODE;
-                            res_t = htonl(res);
-                            ret = send(i, (void*)&res_t, sizeof(uint32_t), 0);
                             break;
                         }
                         
