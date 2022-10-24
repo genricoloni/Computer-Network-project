@@ -12,7 +12,7 @@ int main(int argc, char* argv[]){
 
     struct credenziali credenziali;
 
-    bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false;
+    bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false, in = false;
 
     // strutture per indirizzi
     struct sockaddr_in server_addr, client_addr, client_listener_addr;
@@ -103,27 +103,31 @@ int main(int argc, char* argv[]){
             connected = true;
             printf("<<<<<<<<<<<<<<<<<<<<<<<<CONNESSIONE RIUSCITA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
         }
-        printf("mi sono cnnesso\n");
+       
         switch (code){
             case SIGNUP_CODE:            
-                reg = send_credential_c(code, credenziali, server_com);
+                reg = signup_c(code, credenziali, server_com);
                 su = reg;
                 system("clear");
                 break;
 
             case IN_CODE:
-                //in caso di successo della in posso passare al menu principale e uscire dunque da questo loop
-                //caso = login(buffer, DEVICE_PORT);
+                in = login_c(code, credenziali, server_com);
+                system("clear");
                 break;
 
             default:
                 cmd_err = true;
-                //system("clear");
+                system("clear");
                 break;
     }   
-        
-    
+    if(in == true)
+        break;
     }
+
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+printf("Menu principale\n");
+
     
     return 0;
 }

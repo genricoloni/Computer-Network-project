@@ -52,6 +52,21 @@ bool check_presenza_utente(struct credenziali cred){
     return true;
 }
 
+bool check_login_utente(struct credenziali cred){
+    FILE *cr = fopen("reg_users.txt", "rb");
+    struct credenziali temp_cr;
+
+    while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
+        if(strcmp(cred.username, temp_cr.username) == 0
+        && strcmp(cred.password, temp_cr.password) == 0){
+            fclose(cr);
+            return true;
+        }
+    }
+    fclose(cr);
+    return false;
+}
+
 
 //la funzione aggiugne l'utente user alla lista degli utenti registrati, con la sua password
 //da usare dopo che si è verificato che l'username non è già stato registrato
@@ -106,14 +121,11 @@ void signup_s(int sock){
 
 //la funzione si occupa di estrarre credenziali e password dalla stringa,
 //inviarle al server e aspettare una conferma di avvenuta registrazione
-bool send_credential_c(int code, struct credenziali credenziali, int sock){
+bool signup_c(int code, struct credenziali credenziali, int sock){
     int ack;
     uint32_t msg_len, code_t;
 
-
     //serializzazione
-
-
     msg_len = sizeof(uint32_t);
 
     code_t = htonl(code);
@@ -144,8 +156,74 @@ bool send_credential_c(int code, struct credenziali credenziali, int sock){
     return false;
 }
 
-int login(char* buffer, int port){
 
 
-    return 1;
+void login_s(int sock){
+    int res;
+    uint32_t msg_len, res_t;
+    struct credenziali cred;
+
+    res = ACK;
+    res_t = htonl(res);
+    //invio ack di ricezione codice
+    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+    printf("PROVA");
+    msg_len = (sizeof(cred));
+
+    //ricevo le credenziali
+    recv(sock, (void*)&cred, msg_len, 0);
+
+    
+    //controllo correttezza credenziali
+    if(check_login_utente(cred) == false){
+        //le credenziali non sono corrette
+        res = IN_ERR;
+        res_t = htonl(res);
+        send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+        return;
+    }
+    res = ACK;
+    res_t = htonl(res);
+    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+    return;
+
+   
 }
+
+bool login_c(int code, struct credenziali credenziali, int sock){
+    int ack;
+    uint32_t msg_len, code_t;
+
+    //serializzazione
+    msg_len = sizeof(uint32_t);
+
+    code_t = htonl(code);
+
+    //invio del codice al server
+    send(sock, (void*)&code_t, msg_len, 0);
+
+    //aspetto conferma
+    recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
+    ack = ntohl(code_t);
+
+    if(ack != ACK){
+        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        exit(-1);
+    }
+
+    //serializzazione
+    msg_len = htonl(sizeof(credenziali));
+    //invio la struct contenente le credenziali
+    send(sock, (void*)&credenziali, msg_len, 0);
+
+    //aspetto conferma
+    recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
+    ack = ntohl(code_t);
+
+    if(ack == IN_ERR)
+        return false;
+    return true;
+}
+
+
+

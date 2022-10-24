@@ -8,6 +8,7 @@
 #define PW_CHAR         8   //massimo numero di caratteri per la password
 
 #define ALRDY_REG       -1
+#define IN_ERR          -1
 #define ACK             77  //codice di conferma della correttezza delle operazioni
 #define ERR_CODE        -1  //codice assegnato quando non viene riconosciuto un comando
 #define SIGNUP_CODE     1
