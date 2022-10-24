@@ -64,6 +64,40 @@ void inserisci_utente(struct utenti_online **head, char *Username, uint32_t sock
 
 }
 
+//rimuove dalla lista utenti_online un utente che si è disconnesso
+void rimuovi_utente(struct utenti_online **head, uint32_t todelete){
+      struct utenti_online *pun, *temp;
+
+      if (*head == NULL)
+            return;
+
+      // todelete si trova in testa
+      if ((*head)->socket == todelete)
+      {
+            pun = *head;
+            *head = (*head)->pointer;
+            free(pun);
+
+            return;
+      }
+
+     // elemento in mezzo alla lista
+
+      
+      for (pun = *head; pun != NULL; pun = pun->pointer, temp = pun)
+            if (pun->socket == todelete)
+                  break;
+
+      // non ho trovato nulla
+      if (pun == NULL)
+            return;
+
+      // l'elemento è stato trovato
+      // elimino
+      temp->pointer = pun->pointer;
+      return;
+}
+
 
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
