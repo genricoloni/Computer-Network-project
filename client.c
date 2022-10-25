@@ -112,7 +112,7 @@ int main(int argc, char* argv[]){
                 break;
 
             case IN_CODE:
-                in = login_c(code, credenziali, server_com, port);
+                in = login_c(code, credenziali, server_com, atoi(argv[1]));
                 system("clear");
                 break;
 
@@ -128,7 +128,7 @@ int main(int argc, char* argv[]){
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 printf("Menu principale\n");
 while(1){
-
+    
 }
     
     return 0;

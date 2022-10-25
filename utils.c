@@ -98,7 +98,7 @@ void rimuovi_utente(struct utenti_online **head, uint32_t todelete){
 }
 
 // aggiorna i valori della history quando il client fa login
-void aggiorna_registro_utente(char *Username, uint32_t port){
+void aggiorna_registro_utente(char *Username, int port){
       struct user_record record;
       time_t rawtime;
       FILE *fileptr = fopen("registro.txt", "rb+");
@@ -120,6 +120,9 @@ void aggiorna_registro_utente(char *Username, uint32_t port){
                   fclose(fileptr);
                   return ;
             }
+}
+      fclose(fileptr);
+      return;
 }
 
 
@@ -162,11 +165,26 @@ bool check_login_utente(struct credenziali cred){
     return false;
 }
 
+// inizializza un utente nel file history
+void inizializza_history(struct credenziali credenziali)
+{
+
+
+      FILE *fptr = fopen("registro.txt", "ab"); // modalità append per non sovrascrivere i record precedenti
+      struct user_record record;
+      strcpy(record.Username, credenziali.username);
+      record.Port = 0;
+      record.timestamp_in = 0;
+      record.timestamp_out = 0;
+      fwrite(&record, sizeof(struct credenziali), 1, fptr);
+
+      fclose(fptr);
+}
 
 //la funzione aggiugne l'utente user alla lista degli utenti registrati, con la sua password
 //da usare dopo che si è verificato che l'username non è già stato registrato
 void registra_utente(struct credenziali cred){
-    FILE *fptr = fopen("reg_users.txt", "a");
+    FILE *fptr = fopen("reg_users.txt", "ab");
       fwrite(&cred, sizeof(cred), 1, fptr);
       fclose(fptr);
 }
@@ -219,14 +237,20 @@ void signup_s(int sock){
 
 //effettua l'operazione di log-in di un utente su richiesta di un device
 bool login_s(int sock, struct utenti_online **testa){
-    int res;
-    uint32_t msg_len, res_t;
+    int res, port;
+    uint32_t msg_len, res_t, port_t     ;
     struct credenziali cred;
 
     res = ACK;
     res_t = htonl(res);
     //invio ack di ricezione codice
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+
+    //ricevo la porta
+    recv(sock, (void*)&port_t, sizeof(uint32_t), 0);
+    port = ntohl(port_t);
+
+
     msg_len = (sizeof(cred));
 
     //ricevo le credenziali
@@ -246,8 +270,8 @@ bool login_s(int sock, struct utenti_online **testa){
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
 
     inserisci_utente(testa, cred.username, sock);
-
-    aggiorna_registro_utente(cred.username, )
+    inizializza_history(cred);
+    aggiorna_registro_utente(cred.username, port);
     return true;
 
    
@@ -302,7 +326,7 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
 //inviarle al server e aspettare uan conferma di avvenuto log-in
 bool login_c(int code, struct credenziali credenziali, int sock, int port){
     int ack;
-    uint32_t msg_len, code_t;
+    uint32_t msg_len, code_t, port_t;
 
     //serializzazione
     msg_len = sizeof(uint32_t);
@@ -320,6 +344,11 @@ bool login_c(int code, struct credenziali credenziali, int sock, int port){
         perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
         exit(-1);
     }
+
+    //invio la porta
+    port_t = htonl(port);
+
+    send(sock, (void*)&port_t, sizeof(uint32_t), 0);
 
     //serializzazione
     msg_len = htonl(sizeof(credenziali));
