@@ -28,10 +28,21 @@ struct credenziali{
     char password[PW_CHAR];
 };
 
+
+
 //struttura analoga a credenziali, utile per l'invio tramite socket
 struct credenziali_t{
     u_int8_t user[USERN_CHAR];
     u_int8_t pass[PW_CHAR];
 };
+
+// descrittore record di history di un utente (viene utilizzato per tenere traccia dei login e dei logout)
+struct user_record{
+      char Username[50];
+      uint32_t Port;
+      time_t timestamp_in;
+      time_t timestamp_out;
+};
+
 
 #endif /* CHAT_H */

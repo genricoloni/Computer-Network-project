@@ -112,7 +112,7 @@ int main(int argc, char* argv[]){
                 break;
 
             case IN_CODE:
-                in = login_c(code, credenziali, server_com);
+                in = login_c(code, credenziali, server_com, port);
                 system("clear");
                 break;
 

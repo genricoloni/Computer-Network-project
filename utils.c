@@ -61,7 +61,6 @@ void inserisci_utente(struct utenti_online **head, char *Username, uint32_t sock
             node->pointer = *head;
             *head = node;
       }
-
 }
 
 //rimuove dalla lista utenti_online un utente che si è disconnesso
@@ -97,6 +96,34 @@ void rimuovi_utente(struct utenti_online **head, uint32_t todelete){
       temp->pointer = pun->pointer;
       return;
 }
+
+// aggiorna i valori della history quando il client fa login
+void aggiorna_registro_utente(char *Username, uint32_t port){
+      struct user_record record;
+      time_t rawtime;
+      FILE *fileptr = fopen("registro.txt", "rb+");
+      while (fread(&record, sizeof(struct user_record), 1, fileptr))
+      {
+            if (strcmp(record.Username, Username) == 0)
+            {
+                  // ho trovato il record che cercavo e quindi ne aggiorno il campo timestamp_in
+                  record.timestamp_in = time(&rawtime);
+                  record.timestamp_out = 0;
+                  record.Port = port;
+                  printf(" Sto scrivendo sul registro client history i seguenti valori\nUsername:%s\nTimestampIN:%ld\nTimestampOUT:%ld\nPort:%d\n ",
+                         record.Username,
+                         record.timestamp_in,
+                         record.timestamp_out,
+                         record.Port);
+                  fseek(fileptr, -1 * sizeof(struct user_record), SEEK_CUR);
+                  fwrite(&record, sizeof(struct user_record), 1, fileptr);
+                  fclose(fileptr);
+                  return ;
+            }
+}
+
+
+
 
 
 /********************************************************************************************************/
@@ -220,6 +247,7 @@ bool login_s(int sock, struct utenti_online **testa){
 
     inserisci_utente(testa, cred.username, sock);
 
+    aggiorna_registro_utente(cred.username, )
     return true;
 
    
@@ -272,7 +300,7 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
 
 //la funzione si occupa di estrarre le credenziali dalla stringa,
 //inviarle al server e aspettare uan conferma di avvenuto log-in
-bool login_c(int code, struct credenziali credenziali, int sock){
+bool login_c(int code, struct credenziali credenziali, int sock, int port){
     int ack;
     uint32_t msg_len, code_t;
 
