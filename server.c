@@ -13,6 +13,7 @@ int main(int argc, char* argv[]){
     port = findPort(argc, argv);
     bool res;
 
+    system("clear");
     printf("<<<<<<<<<<<<<<SERVER ONLINE SULLA PORTA  %d>>>>>>>>>>>>>> \n", port);
 
     stampa_comandi_server();
@@ -53,9 +54,9 @@ int main(int argc, char* argv[]){
                     switch (code)
                     {
                         case LIST_CODE:
+                            fflush(stdin);
                             printf("LISTA UTENTI ONLINE:\n");
                             stampa_lista_utenti_online(utenti_online);
-                            printf("Premi un tasto per tornare al menù principale\n");
                             getchar();
                             system("clear");
                             stampa_comandi_server();
@@ -63,7 +64,6 @@ int main(int argc, char* argv[]){
                         
                         case HELP_CODE:
                             stampa_help_server();
-                            printf("Premi un tasto per tornare al menù principale\n");
                             getchar();  
                             system("clear");
                             stampa_comandi_server();                              
@@ -72,6 +72,10 @@ int main(int argc, char* argv[]){
                         case ESC_CODE:
                             printf("SERVER CHIUSO\n");
                             exit(0);
+                            break;
+
+                        default:
+                            printf("Comando non riconosciuto\n");
                             break;
                     }
                     

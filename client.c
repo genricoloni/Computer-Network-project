@@ -167,17 +167,17 @@ int main(int argc, char* argv[]){
                         case CHAT_CODE:
                             //prelevo username dal buffer
                             sscanf(buffer, "%s %s", command, username);
-                            chat_c(code, server_com, buffer);
+                            //chat_c(code, server_com, buffer);
                             break;
 
                         case SHARE_CODE:
                             //prelevo username e filename dal buffer
                             sscanf(buffer, "%s %s %s", command, username, filename);
-                            share_c(code, server_com, buffer);
+                            //share_c(code, server_com, buffer);
                             break;
 
                         case OUT_CODE:
-                            out_c(code, server_com);
+                            //out_c(code, server_com);
                             break;
 
                         default:

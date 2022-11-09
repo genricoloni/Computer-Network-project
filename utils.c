@@ -117,7 +117,7 @@ void aggiorna_registro_utente(char *Username, int port){
             if (strcmp(record.Username, Username) == 0)
             {
                   // ho trovato il record che cercavo e quindi ne aggiorno il campo timestamp_in
-                  record.timestamp_in = c_time(&rawtime);
+                  record.timestamp_in = rawtime;
                   record.timestamp_out = 0;
                   record.Port = port;
                   printf(" Sto scrivendo sul registro client history i seguenti valori\nUsername:%s\nTimestampIN:%ld\nTimestampOUT:%ld\nPort:%d\n ",
@@ -224,7 +224,15 @@ void stampa_help_server(){
     printf("comando 'LIST':\n mostra la lista degli utenti online, specificando il loro username, la porta su cui sono connessi e il timestamp di connessione\n");
 
     printf("comando 'ESC':\n chiude il server. Le chat tra gli utenti continueranno in P2P, ma gli utenti non potranno avviare nuove chat\n");
+    wait();
+    //system("clear");
+}
 
+//funzione che ferma il programma in attesa della pressione di un tasto
+void wait(){
+    fflush(stdin);
+    printf("Premi INVIO per tornare al menù principale\n");
+    getchar();
 }
 
 /********************************************************************************************************/
@@ -314,13 +322,22 @@ bool login_s(int sock, struct utenti_online **testa){
 
 void stampa_lista_utenti_online(struct utenti_online *testa){
     struct utenti_online *tmp = testa;
-    printf("<<<<<<<<<<<<<<<<<<UTENTI ONLINE>>>>>>>>>>>>>>>>>>\n\n");
+    bool someone = false;
+    fflush(stdin);
+    system("clear");
     while(tmp != NULL){
+        someone = true;
         printf("Username: %s\n", tmp->username);
         printf("Porta: %d\n", tmp->port);
         printf("Timestamp: %ld\n\n", tmp->timestamp_in);
         tmp = tmp->pointer;
     }
+
+    if(someone == false)
+        printf("NESSUN UTENTE ONLINE\n");
+
+    wait();
+
 }
 
 
@@ -413,7 +430,7 @@ bool login_c(int code, struct credenziali credenziali, int sock, int port){
 //la funzione si occupa di stampare l'username, il numero di messaggi pendenti
 //e il timestamp del messassggio più recente
 void hanging_c(int code, int sock){
-    int ack, hang, count_hang;
+    int ack, hang, count_hang, i;
     uint32_t msg_len, code_t, hang_t, count_hang_t;
     struct messaggio_pendente mp;
     
@@ -441,7 +458,7 @@ void hanging_c(int code, int sock){
     recv(sock, (void*)&hang_t, sizeof(uint32_t), 0);
     hang = ntohl(hang_t);
 
-    for(int i = 0; i < hang; i++){
+    for(i = 0; i < hang; i++){
         //ricevo il nome dell'utente
         recv(sock, (void*)&mp.utente, sizeof(&mp.utente), 0);
 
@@ -456,9 +473,11 @@ void hanging_c(int code, int sock){
 
     }
     printf("Premi un tasto per tornare al menù principale\n");
-    getchar();
+
 
 }
+
+
 
 //funzione che richiede al server tutti i messaggi riferiti al client da un utente specifico
 //i messaggi vengono memorizzati nel file di chat tra i due utenti
