@@ -55,11 +55,12 @@ int cmd_to_code(char* code){
 
 //la funzione viene chiamata dal server quando un utente effettua un login: 
 //verrà aggiunto alla liusta di utenti online
-void inserisci_utente(struct utenti_online **head, char *Username, uint32_t socket)
+void inserisci_utente(struct utenti_online **head, char *Username, uint32_t socket, int port)
 {
       struct utenti_online *node = (struct utenti_online *)malloc(sizeof(struct utenti_online));
       node->pointer = NULL;
       node->socket = socket;
+      node->port = port;
       strcpy(node->username, Username);
 
       // il nodo puntato da elem è gia inzializzato quando chiamo la routine
@@ -198,8 +199,33 @@ void registra_utente(struct credenziali cred){
       fclose(fptr);
 }
 
+//la funzione converte il comando server in un codice intero
+int codifica_comando_server(char *comando){
+    if(strcmp(comando, "list") == 0)
+        return LIST_CODE;
+    if(strcmp(comando, "help") == 0)
+        return HELP_CODE;
+    if(strcmp(comando, "esc") == 0)
+        return ESC_CODE;
+    return -1;
+}
 
+//stampa i comandi disponibili per il server
+void stampa_comandi_server(){
+    printf("<<<<<<<<<<<<<<<<<<COMANDI SERVER>>>>>>>>>>>>>>>>>>\n\n");
+    printf("help - mostra una breve descrizione dei comandi\n");
+    printf("list - mostra lista utenti online\n");
+    printf("esc  - chiude il server\n");  
+}
 
+//stampa una breve descrizione dei comandi del server
+void stampa_help_server(){
+    system("clear");
+    printf("comando 'LIST':\n mostra la lista degli utenti online, specificando il loro username, la porta su cui sono connessi e il timestamp di connessione\n");
+
+    printf("comando 'ESC':\n chiude il server. Le chat tra gli utenti continueranno in P2P, ma gli utenti non potranno avviare nuove chat\n");
+
+}
 
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DELLE OPERAZIONI DEL SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
@@ -278,7 +304,7 @@ bool login_s(int sock, struct utenti_online **testa){
     res_t = htonl(res);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
 
-    inserisci_utente(testa, cred.username, sock);
+    inserisci_utente(testa, cred.username, sock, port);
     inizializza_history(cred);
     aggiorna_registro_utente(cred.username, port);
     return true;
@@ -286,7 +312,16 @@ bool login_s(int sock, struct utenti_online **testa){
    
 }
 
-
+void stampa_lista_utenti_online(struct utenti_online *testa){
+    struct utenti_online *tmp = testa;
+    printf("<<<<<<<<<<<<<<<<<<UTENTI ONLINE>>>>>>>>>>>>>>>>>>\n\n");
+    while(tmp != NULL){
+        printf("Username: %s\n", tmp->username);
+        printf("Porta: %d\n", tmp->port);
+        printf("Timestamp: %ld\n\n", tmp->timestamp_in);
+        tmp = tmp->pointer;
+    }
+}
 
 
 
@@ -427,7 +462,7 @@ void hanging_c(int code, int sock){
 
 //funzione che richiede al server tutti i messaggi riferiti al client da un utente specifico
 //i messaggi vengono memorizzati nel file di chat tra i due utenti
-void read_c(int code, char *utente, int sock){
+void show_c(int code, char *utente, int sock){
     int ack, count_msg;
     uint32_t msg_len, code_t, count_msg_t;
     FILE *fp;
@@ -459,10 +494,11 @@ void read_c(int code, char *utente, int sock){
     count_msg = ntohl(count_msg_t);
 
     //apro il file di chat
-    sprintf(path, "%s_%s", cred.username, utente);
+    //sprintf(path, "%s_%s", cred.username, utente);
     fp = fopen(path, "a");
 
-    for(int i = 0; i < count_msg; i++){
+    //for(int i = 0; i < count_msg; i++)
+    {
         //ricevo il messaggio
 
 

@@ -19,11 +19,17 @@
 #define SHARE_CODE      6
 #define OUT_CODE        7
 
+#define HELP_CODE       11
+#define LIST_CODE       12
+#define ESC_CODE        7
+
 #define STDIN 0
 
 struct utenti_online{
     char username[USERN_CHAR];
     int socket;
+    int port;
+    time_t timestamp_in;
     struct utenti_online* pointer;
 };
 

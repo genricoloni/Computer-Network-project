@@ -9,16 +9,13 @@ int main(int argc, char* argv[]){
     struct utenti_online* utenti_online = NULL;
 
     int port;
+    int code;
     port = findPort(argc, argv);
     bool res;
 
     printf("<<<<<<<<<<<<<<SERVER ONLINE SULLA PORTA  %d>>>>>>>>>>>>>> \n", port);
-      printf("/////////// COMANDI SERVER ////////////\n\n");
-      printf("help - mostra una breve descrizione dei comandi\n");
-      printf("list - mostra lista utenti online\n");
-      printf("esc  - chiude il server\n");
-      printf("//////////////////////////////////////\n\n");
-    
+
+    stampa_comandi_server();
 
     //char buffer[4096];
     FD_ZERO(&master);
@@ -52,27 +49,32 @@ int main(int argc, char* argv[]){
                 if(i == STDIN){
                     char Command[100];
                     fscanf(stdin, "%s", Command);
-                    if (strcmp(Command, "help") == 0)
-					{
-						// comando help
-						//stampa_comandi_server();
-					}
-					else if (strcmp(Command, "list") == 0)
-					{
-						// comando list
-						//comando_list();
-					}
-					else if (strcmp(Command, "esc") == 0)
-					{
-						// comando esc
-						exit(1);
-					}
-					else
-					{
-						// comando non valido, torno sopra
-						printf("comando non esistente\n");
-						continue;
-					}
+                    code = codifica_comando_server(Command);
+                    switch (code)
+                    {
+                        case LIST_CODE:
+                            printf("LISTA UTENTI ONLINE:\n");
+                            stampa_lista_utenti_online(utenti_online);
+                            printf("Premi un tasto per tornare al menù principale\n");
+                            getchar();
+                            system("clear");
+                            stampa_comandi_server();
+                            break;
+                        
+                        case HELP_CODE:
+                            stampa_help_server();
+                            printf("Premi un tasto per tornare al menù principale\n");
+                            getchar();  
+                            system("clear");
+                            stampa_comandi_server();                              
+                            break;
+                        
+                        case ESC_CODE:
+                            printf("SERVER CHIUSO\n");
+                            exit(0);
+                            break;
+                    }
+                    
                 } else{
                     if(i == listener){
                         addrlen = sizeof(client_addr);

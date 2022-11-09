@@ -6,7 +6,8 @@ int main(int argc, char* argv[]){
     
     char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE];
-    int code;
+    char* username, *filename;
+    int code, i;
     int server_com, cl_listener, ret;
     int fdmax = 0;
 
@@ -126,68 +127,73 @@ int main(int argc, char* argv[]){
     }
 
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
-    while(1){
         printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Menu principale>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-        printf("1)hanging           -->ricevi i messaggi pendenti quando eri offline\n");
-        printf("2)show    username  -->mostra i messaggi inviati da username\n");
-        printf("3)chat    username  -->avvia una chat con username\n");
-        printf("4)share   file_name -->condividi il file file_name con tutti gli utenti connessi\n");
-        printf("5)out               -->disconnetti l'utente\n");
+        printf("1)hanging                   -->ricevi i messaggi pendenti quando eri offline\n");
+        printf("2)show  username            -->mostra i messaggi inviati da username\n");
+        printf("3)chat  username            -->avvia una chat con username\n");
+        printf("4)share username file_name  -->condividi il file file_name con tutti gli utenti connessi\n");
+        printf("5)out                       -->disconnetti l'utente\n");
 
-        cmd_err = false;
-        if(cmd_err == true)
-            printf("+++Comando [%s] non riconosciuto+++\n", command);
 
-        fgets(buffer, 1024 - 1, stdin);
-    	sscanf(buffer, "%s %s %s %s", command, port, credenziali.username, credenziali.password);
-    
-        code = cmd_to_code(command);
+    while(1){
+        readfds = master;
+        select(fdmax + 1, &readfds, NULL, NULL, NULL);
 
-        if(code == -1){
-            cmd_err = true;
-            system("clear");
-            continue;
+        for(i = 0; i <= fdmax; i++){
+
+            if(FD_ISSET(i, &readfds)){
+
+                if ( i == STDIN){
+                    //è un comando dallo stdin
+                    memset(&buffer, 0, sizeof(buffer));
+                    memset(&command, 0, sizeof(command));
+                    fgets(buffer, 1024 - 1, stdin);
+		            sscanf(buffer, "%s", command);
+
+                    code = cmd_to_code(command);
+                    
+                    //switch case con tutti i casi per i diversi comandi
+                    switch (code){
+                        case HANG_CODE:
+                            hanging_c(code, server_com);
+                            break;
+
+                        case SHOW_CODE:
+                            //prelevo username dal buffer
+                            sscanf(buffer, "%s %s", command, username);
+                            show_c(code, username, server_com);
+                            break;
+
+                        case CHAT_CODE:
+                            //prelevo username dal buffer
+                            sscanf(buffer, "%s %s", command, username);
+                            chat_c(code, server_com, buffer);
+                            break;
+
+                        case SHARE_CODE:
+                            //prelevo username e filename dal buffer
+                            sscanf(buffer, "%s %s %s", command, username, filename);
+                            share_c(code, server_com, buffer);
+                            break;
+
+                        case OUT_CODE:
+                            out_c(code, server_com);
+                            break;
+
+                        default:
+                            printf("+++Comando [%s] non riconosciuto+++\n", command);
+                            break;
+                    }
+
+                    
+
+                
+                    
+                }
+            }
         }
+    }
 
-        switch (code){
-            case HANG_CODE:
-                hanging_c(code, server_com);
-                break;
 
-            case SHOW_CODE:
-                show_c(code, credenziali, server_com);
-                system("clear");
-                break;
 
-            case CHAT_CODE:
-                chat_c(code, credenziali, server_com, cl_listener, fdmax, master);
-                system("clear");
-                break;
-
-            case SHARE_CODE:
-                share_c(code, credenziali, server_com);
-                system("clear");
-                break;
-
-            case OUT_CODE:
-                out_c(code, server_com);
-                system("clear");
-                break;
-
-            default:
-                cmd_err = true;
-                system("clear");
-                break;
-        }
-        {
-        case /* constant-expression */:
-            /* code */
-            break;
-        
-        default:
-            break;
-        }
-
-    }   
-        return 0;
 }
