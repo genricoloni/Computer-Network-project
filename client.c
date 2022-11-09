@@ -128,6 +128,7 @@ int main(int argc, char* argv[]){
 
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
         printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Menu principale>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+        printf("Connesso come %s\n", credenziali.username);
         printf("1)hanging                   -->ricevi i messaggi pendenti quando eri offline\n");
         printf("2)show  username            -->mostra i messaggi inviati da username\n");
         printf("3)chat  username            -->avvia una chat con username\n");

@@ -117,7 +117,7 @@ void aggiorna_registro_utente(char *Username, int port){
             if (strcmp(record.Username, Username) == 0)
             {
                   // ho trovato il record che cercavo e quindi ne aggiorno il campo timestamp_in
-                  record.timestamp_in = rawtime;
+                  record.timestamp_in = ctime(&rawtime);
                   record.timestamp_out = 0;
                   record.Port = port;
                   printf(" Sto scrivendo sul registro client history i seguenti valori\nUsername:%s\nTimestampIN:%ld\nTimestampOUT:%ld\nPort:%d\n ",
