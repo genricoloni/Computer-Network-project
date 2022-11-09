@@ -13,6 +13,11 @@
 #define ERR_CODE        -1  //codice assegnato quando non viene riconosciuto un comando
 #define SIGNUP_CODE     1
 #define IN_CODE         2
+#define HANG_CODE       3
+#define SHOW_CODE       4   
+#define CHAT_CODE       5
+#define SHARE_CODE      6
+#define OUT_CODE        7
 
 #define STDIN 0
 
@@ -42,6 +47,12 @@ struct user_record{
       uint32_t Port;
       time_t timestamp_in;
       time_t timestamp_out;
+};
+
+struct messaggio_pendente{
+    char* utente;
+    int messaggi_pendenti;
+    time_t timestamp;
 };
 
 

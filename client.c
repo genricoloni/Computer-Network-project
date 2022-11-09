@@ -126,10 +126,68 @@ int main(int argc, char* argv[]){
     }
 
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
-printf("Menu principale\n");
-while(1){
+    while(1){
+        printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Menu principale>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+        printf("1)hanging           -->ricevi i messaggi pendenti quando eri offline\n");
+        printf("2)show    username  -->mostra i messaggi inviati da username\n");
+        printf("3)chat    username  -->avvia una chat con username\n");
+        printf("4)share   file_name -->condividi il file file_name con tutti gli utenti connessi\n");
+        printf("5)out               -->disconnetti l'utente\n");
+
+        cmd_err = false;
+        if(cmd_err == true)
+            printf("+++Comando [%s] non riconosciuto+++\n", command);
+
+        fgets(buffer, 1024 - 1, stdin);
+    	sscanf(buffer, "%s %s %s %s", command, port, credenziali.username, credenziali.password);
     
-}
-    
-    return 0;
+        code = cmd_to_code(command);
+
+        if(code == -1){
+            cmd_err = true;
+            system("clear");
+            continue;
+        }
+
+        switch (code){
+            case HANG_CODE:
+                hanging_c(code, server_com);
+                break;
+
+            case SHOW_CODE:
+                show_c(code, credenziali, server_com);
+                system("clear");
+                break;
+
+            case CHAT_CODE:
+                chat_c(code, credenziali, server_com, cl_listener, fdmax, master);
+                system("clear");
+                break;
+
+            case SHARE_CODE:
+                share_c(code, credenziali, server_com);
+                system("clear");
+                break;
+
+            case OUT_CODE:
+                out_c(code, server_com);
+                system("clear");
+                break;
+
+            default:
+                cmd_err = true;
+                system("clear");
+                break;
+        }
+        {
+        case /* constant-expression */:
+            /* code */
+            break;
+        
+        default:
+            break;
+        }
+
+    }   
+        return 0;
 }

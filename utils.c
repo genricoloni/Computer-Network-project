@@ -34,7 +34,16 @@ int cmd_to_code(char* code){
         return SIGNUP_CODE;
     else if (strcmp(code, "in") == 0)
         return IN_CODE;
-    //da completare con tutti gli altri codici
+    else if (strcmp(code, "hanging") == 0)
+        return HANG_CODE;
+    else if (strcmp(code, "show"))
+        return SHOW_CODE;
+    else if (strcmp(code, "chat") == 0)
+        return CHAT_CODE;
+    else if (strcmp(code, "share") == 0)
+        return SHARE_CODE;
+    else if (strcmp(code, "out") == 0)
+        return OUT_CODE;
     else return -1;
     
 }
@@ -107,7 +116,7 @@ void aggiorna_registro_utente(char *Username, int port){
             if (strcmp(record.Username, Username) == 0)
             {
                   // ho trovato il record che cercavo e quindi ne aggiorno il campo timestamp_in
-                  record.timestamp_in = time(&rawtime);
+                  record.timestamp_in = c_time(&rawtime);
                   record.timestamp_out = 0;
                   record.Port = port;
                   printf(" Sto scrivendo sul registro client history i seguenti valori\nUsername:%s\nTimestampIN:%ld\nTimestampOUT:%ld\nPort:%d\n ",
@@ -363,3 +372,107 @@ bool login_c(int code, struct credenziali credenziali, int sock, int port){
         return false;
     return true;
 }
+
+
+//funzione che richiede al server tutti i messaggi riferiti al client
+//la funzione si occupa di stampare l'username, il numero di messaggi pendenti
+//e il timestamp del messassggio più recente
+void hanging_c(int code, int sock){
+    int ack, hang, count_hang;
+    uint32_t msg_len, code_t, hang_t, count_hang_t;
+    struct messaggio_pendente mp;
+    
+    system("clear");
+    //serializzazione
+    msg_len = sizeof(uint32_t);
+
+    code_t = htonl(code);
+
+    //invio del codice al server
+    send(sock, (void*)&code_t, msg_len, 0);
+
+    //aspetto conferma
+    recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
+    ack = ntohl(code_t);
+
+    
+    if(ack != ACK){
+        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        exit(-1);
+    }
+
+    //ricevo il numero di utenti per i quali ho messaggi pendenti
+
+    recv(sock, (void*)&hang_t, sizeof(uint32_t), 0);
+    hang = ntohl(hang_t);
+
+    for(int i = 0; i < hang; i++){
+        //ricevo il nome dell'utente
+        recv(sock, (void*)&mp.utente, sizeof(&mp.utente), 0);
+
+        //ricevo il numero di messaggi pendenti
+        recv(sock, (void*)&count_hang_t, sizeof(uint32_t), 0);
+        mp.messaggi_pendenti = ntohl(count_hang_t);
+
+        //ricevo il timestamp del messaggio
+        recv(sock, (void*)&mp.timestamp, sizeof(time_t), 0);
+
+        printf(" %s ha inviato %d messaggi, il più recente è del %s\n\n", mp.utente, count_hang, ctime(&mp.timestamp));
+
+    }
+    printf("Premi un tasto per tornare al menù principale\n");
+    getchar();
+
+}
+
+//funzione che richiede al server tutti i messaggi riferiti al client da un utente specifico
+//i messaggi vengono memorizzati nel file di chat tra i due utenti
+void read_c(int code, char *utente, int sock){
+    int ack, count_msg;
+    uint32_t msg_len, code_t, count_msg_t;
+    FILE *fp;
+    char path[100];
+
+
+    msg_len = sizeof(uint32_t);
+
+    code_t = htonl(code);
+
+    //invio del codice al server
+    send(sock, (void*)&code_t, msg_len, 0);
+
+    //aspetto conferma
+    recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
+    ack = ntohl(code_t);
+
+    
+    if(ack != ACK){
+        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        exit(-1);
+    }
+
+    //invio il nome dell'utente
+    send(sock, (void*)&utente, sizeof(&utente), 0);
+
+    //ricevo il numero di messaggi
+    recv(sock, (void*)&count_msg_t, sizeof(uint32_t), 0);
+    count_msg = ntohl(count_msg_t);
+
+    //apro il file di chat
+    sprintf(path, "%s_%s", cred.username, utente);
+    fp = fopen(path, "a");
+
+    for(int i = 0; i < count_msg; i++){
+        //ricevo il messaggio
+
+
+        //scrivo il messaggio nel file di chat
+
+    }
+
+    fclose(fp);
+
+}
+
+
+
