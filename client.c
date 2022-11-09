@@ -6,7 +6,7 @@ int main(int argc, char* argv[]){
     
     char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE];
-    char* username, *filename;
+    char* username = NULL, *filename = NULL;
     int code, i;
     int server_com, cl_listener, ret;
     int fdmax = 0;
@@ -162,6 +162,7 @@ int main(int argc, char* argv[]){
                         case SHOW_CODE:
                             //prelevo username dal buffer
                             sscanf(buffer, "%s %s", command, username);
+                            printf("Debug: %d %s %s\n", code, command, username);
                             show_c(code, username, server_com);
                             break;
 

@@ -3,7 +3,7 @@
 #include <sys/socket.h>
 #include <netinet/in.h>
 #include <unistd.h>
-#include <sys/time.h>
+#include <time.h>
 #include <sys/types.h>
 #include <string.h>
 #include <stdlib.h>
@@ -57,20 +57,21 @@ int cmd_to_code(char* code){
 //verrà aggiunto alla liusta di utenti online
 void inserisci_utente(struct utenti_online **head, char *Username, uint32_t socket, int port)
 {
-      struct utenti_online *node = (struct utenti_online *)malloc(sizeof(struct utenti_online));
-      node->pointer = NULL;
-      node->socket = socket;
-      node->port = port;
-      strcpy(node->username, Username);
-
-      // il nodo puntato da elem è gia inzializzato quando chiamo la routine
-      if (*head == NULL)
-            *head = node;
-      else
-      { // piazza elem in testa alla lista
-            node->pointer = *head;
-            *head = node;
-      }
+    time_t curtime;
+    struct utenti_online *node = (struct utenti_online *)malloc(sizeof(struct utenti_online));
+    node->pointer = NULL;
+    node->socket = socket;
+    node->port = port;
+    node->timestamp_in = time(&curtime);
+    strcpy(node->username, Username);
+    // il nodo puntato da elem è gia inzializzato quando chiamo la routine
+    if (*head == NULL)
+          *head = node;
+    else
+    { // piazza elem in testa alla lista
+          node->pointer = *head;
+          *head = node;
+    }
 }
 
 //rimuove dalla lista utenti_online un utente che si è disconnesso
@@ -116,19 +117,17 @@ void aggiorna_registro_utente(char *Username, int port){
       {
             if (strcmp(record.Username, Username) == 0)
             {
-                  // ho trovato il record che cercavo e quindi ne aggiorno il campo timestamp_in
-                  record.timestamp_in = ctime(&rawtime);
-                  record.timestamp_out = 0;
-                  record.Port = port;
-                  printf(" Sto scrivendo sul registro client history i seguenti valori\nUsername:%s\nTimestampIN:%ld\nTimestampOUT:%ld\nPort:%d\n ",
-                         record.Username,
-                         record.timestamp_in,
-                         record.timestamp_out,
-                         record.Port);
-                  fseek(fileptr, -1 * sizeof(struct user_record), SEEK_CUR);
-                  fwrite(&record, sizeof(struct user_record), 1, fileptr);
-                  fclose(fileptr);
-                  return ;
+                // ho trovato il record che cercavo e quindi ne aggiorno il campo timestamp_in
+                //trovo il timestamp attuale e lo assegno alla variabile
+                time(&rawtime);
+                record.timestamp_in = ctime(&rawtime);
+                record.timestamp_out = 0;
+                record.Port = port;
+                printf("Debug: timestamp-> %s\n", record.timestamp_in);
+                fseek(fileptr, -1 * sizeof(struct user_record), SEEK_CUR);
+                fwrite(&record, sizeof(struct user_record), 1, fileptr);
+                fclose(fileptr);
+                return ;
             }
 }
       fclose(fileptr);
@@ -136,7 +135,12 @@ void aggiorna_registro_utente(char *Username, int port){
 }
 
 
-
+//funzione che ferma il programma in attesa della pressione di un tasto
+void wait(){
+    fflush(stdin);
+    printf("Premi INVIO per tornare al menù principale\n");
+    getchar();
+}
 
 
 /********************************************************************************************************/
@@ -228,12 +232,7 @@ void stampa_help_server(){
     //system("clear");
 }
 
-//funzione che ferma il programma in attesa della pressione di un tasto
-void wait(){
-    fflush(stdin);
-    printf("Premi INVIO per tornare al menù principale\n");
-    getchar();
-}
+
 
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DELLE OPERAZIONI DEL SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
@@ -329,8 +328,9 @@ void stampa_lista_utenti_online(struct utenti_online *testa){
         someone = true;
         printf("Username: %s\n", tmp->username);
         printf("Porta: %d\n", tmp->port);
-        printf("Timestamp: %ld\n\n", tmp->timestamp_in);
+        printf("Timestamp: %s\n\n", ctime(&tmp->timestamp_in));
         tmp = tmp->pointer;
+
     }
 
     if(someone == false)
@@ -430,7 +430,7 @@ bool login_c(int code, struct credenziali credenziali, int sock, int port){
 //la funzione si occupa di stampare l'username, il numero di messaggi pendenti
 //e il timestamp del messassggio più recente
 void hanging_c(int code, int sock){
-    int ack, hang, count_hang, i;
+    int ack, hang, i;
     uint32_t msg_len, code_t, hang_t, count_hang_t;
     struct messaggio_pendente mp;
     
@@ -469,7 +469,7 @@ void hanging_c(int code, int sock){
         //ricevo il timestamp del messaggio
         recv(sock, (void*)&mp.timestamp, sizeof(time_t), 0);
 
-        printf(" %s ha inviato %d messaggi, il più recente è del %s\n\n", mp.utente, count_hang, ctime(&mp.timestamp));
+        printf(" %s ha inviato %d messaggi, il più recente è del %s\n\n", mp.utente, mp.messaggi_pendenti, ctime(&mp.timestamp));
 
     }
     printf("Premi un tasto per tornare al menù principale\n");
@@ -482,7 +482,7 @@ void hanging_c(int code, int sock){
 //funzione che richiede al server tutti i messaggi riferiti al client da un utente specifico
 //i messaggi vengono memorizzati nel file di chat tra i due utenti
 void show_c(int code, char *utente, int sock){
-    int ack, count_msg;
+    int ack, count_msg, i;
     uint32_t msg_len, code_t, count_msg_t;
     FILE *fp;
     char path[100];
@@ -516,7 +516,7 @@ void show_c(int code, char *utente, int sock){
     //sprintf(path, "%s_%s", cred.username, utente);
     fp = fopen(path, "a");
 
-    //for(int i = 0; i < count_msg; i++)
+    for(i = 0; i < count_msg; i++)
     {
         //ricevo il messaggio
 

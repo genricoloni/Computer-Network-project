@@ -51,8 +51,8 @@ struct credenziali_t{
 struct user_record{
       char Username[50];
       uint32_t Port;
-      time_t timestamp_in;
-      time_t timestamp_out;
+      char* timestamp_in;
+      char* timestamp_out;
 };
 
 struct messaggio_pendente{
