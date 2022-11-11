@@ -48,6 +48,13 @@ int cmd_to_code(char* code){
     
 }
 
+//funzione che ferma il programma in attesa della pressione di un tasto
+void wait(){
+    fflush(stdin);
+    printf("Premi INVIO per tornare al menù principale\n");
+    getchar();
+}
+
 
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY SULLE LISTE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
@@ -108,6 +115,11 @@ void rimuovi_utente(struct utenti_online **head, uint32_t todelete){
       return;
 }
 
+
+/********************************************************************************************************/
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+/********************************************************************************************************/
+
 // aggiorna i valori della history quando il client fa login
 void aggiorna_registro_utente(char *Username, int port){
       struct user_record record;
@@ -134,18 +146,6 @@ void aggiorna_registro_utente(char *Username, int port){
       return;
 }
 
-
-//funzione che ferma il programma in attesa della pressione di un tasto
-void wait(){
-    fflush(stdin);
-    printf("Premi INVIO per tornare al menù principale\n");
-    getchar();
-}
-
-
-/********************************************************************************************************/
-/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
-/********************************************************************************************************/
 //la funzione restituisce false se l'username non è 
 //gia presente tra gli utenti registrati
 bool check_presenza_utente(struct credenziali cred){
@@ -342,6 +342,25 @@ void stampa_lista_utenti_online(struct utenti_online *testa){
 
 
 
+/********************************************************************************************************/
+/*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY DEL CLIENT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
+/********************************************************************************************************/
+
+//la funzione si occupa di gestire la chat vera e propria:
+//deve poter inviare più messaggi, ricevere più messaggi e poter terminare la chat;
+//inoltre deve poter ricevere messaggi anche quando non è in attesa di un input da tastiera.
+//per questo motivo è stata utilizzata la select:
+//la select permette di gestire più socket contemporaneamente;
+//in questo caso, oltre al socket della chat, viene gestito anche lo stdin
+//quindi la funzione attende un input da tastiera o un messaggio da un altro utente,
+//quando riceve un messaggio da un altro utente, lo stampa a video
+//quando riceve un input da tastiera, lo invia al destinatario
+
+
+
+
+
+
 
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DELLE OPERAZIONI DEL CLIENT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
@@ -530,4 +549,122 @@ void show_c(int code, char *utente, int sock){
 }
 
 
+//funzione che inizializza una chat tra due utenti
+//la funzione si occupa di creare il file di chat tra i due utenti
+//e di inviare al server il nome dell'utente con cui si vuole chattare
+void chat_init_c(int code, char* username, int server_sock){
+    int ack, port, dest_sock;
+    uint32_t msg_len, code_t, port_t;
+    bool is_on;
+    char buffer[BUFSIZE];
+    struct sent_message msg;
+    struct destinatari dest;
+    //apro file di chat in lettura e scrittura
+    FILE *fp;
+    char* path;
+    
 
+    code_t = htonl(code);
+    
+    //invio codice al server
+    send(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
+
+    //aspetto conferma
+    recv(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
+    ack = ntohl(code_t);
+
+    if(ack != ACK){
+        perror("Errore in fase di comunicazione col server\n");
+        return;
+    }
+
+    //invio il nome dell'utente con cui si vuole chattare
+    send(server_sock, (void*)&username, sizeof(&username), 0);
+
+    //il server mi dice se l'utente esiste
+    recv(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
+    ack = ntohl(code_t);
+
+    if(ack != ACK){
+        printf("L'utente non esiste\n");
+        return;
+    }
+
+    //verifico se il file di chat con username esiste già
+    //se esiste già, lo apro in lettura e scrittura
+    //se non esiste, lo creo
+    path = "user/chat/";
+    path = strcat(path, username);
+    if(access(path, F_OK) == 0){
+        //il file esiste già
+        fp = fopen(path, "a+");
+    }
+    if(access(path, F_OK) != 0){
+        //il file non esiste, lo creo
+        fp = fopen(path, "w+");
+    }
+
+
+    //invio il msg come struct
+    /*msg_len = sizeof(struct sent_message);
+    msg_len = htonl(msg_len);
+    send(server_sock, (void*)&msg_len, sizeof(uint32_t), 0);
+    send(server_sock, (void*)&msg, sizeof(struct sent_message), 0);*/
+
+    //il server mi informa se l'utente è online tramite is_on
+    recv(server_sock, (void*)&is_on, sizeof(bool), 0);
+
+
+    if(is_on == false){
+        //il client invierà i messaggi al server, che li memorizza in attesa che l'utente si connetta
+        printf("L'utente non è online, i messaggi saranno inviati al server e verranno consegnati quando l'utente si connetterà\n");
+        
+        //MANCA LA PARTE IN CUI IL CLIENT RICEVE MESSAGGI DALL'UTENTE O DAL SERVER
+        //MAGARI GESTIRE CON UNA FORK/SELECT NELLA NUOVA FUNZIONE
+
+        //aggiungo il server alla lista dei destinatari
+        dest.username = "server";
+        dest.socket = server_sock;
+        dest.next = NULL;
+
+        //chiamo una sottofunzione che si occupa della chat vera e propria
+
+    }
+    if(is_on == true){
+        //il client invierà i messaggi direttamente all'utente
+        printf("L'utente è online, i messaggi saranno inviati direttamente all'utente\n");
+
+        //
+        //recupero la porta dell'utente 
+        recv(server_sock, (void*)&port_t, sizeof(uint16_t), 0);
+        port = ntohs(port_t);
+
+        //devo connettermi all'utente
+        //creo la socket
+        int client_sock;
+        struct sockaddr_in dest_addr;
+        
+        //pulizia della memoria e gestione indirizzi del destinatario
+        memset(&dest_addr, 0, sizeof(dest_addr));
+        dest_addr.sin_family = AF_INET;
+        dest_addr.sin_port = htons(port);
+        inet_pton(AF_INET, "127.0.0.1", &dest_addr.sin_addr);
+
+        //creazione della socket
+        dest_sock = socket(AF_INET, SOCK_STREAM, 0);
+
+        //connessione al destinatario
+        dest_sock = connect(dest_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr));
+
+        //aggiungo l'utente alla lista dei destinatari
+        dest.username = username;
+        dest.socket = dest_sock;
+        dest.next = NULL;
+
+        //chiamo una sottofunzione che si occupa della chat vera e propria
+
+    }
+    
+
+
+}

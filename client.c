@@ -74,6 +74,9 @@ int main(int argc, char* argv[]){
         if(su == false)
             printf("credenziali registrate correttmente!\n");
 
+        if(in == true)
+            printf("credenziali di accesso errate o utente non registrato!\n");
+
 
         conn_error = false;
         cmd_err = false;
@@ -169,7 +172,7 @@ int main(int argc, char* argv[]){
                         case CHAT_CODE:
                             //prelevo username dal buffer
                             sscanf(buffer, "%s %s", command, username);
-                            //chat_c(code, server_com, buffer);
+                            chat_init_c(code, username, server_com);
                             break;
 
                         case SHARE_CODE:
@@ -179,7 +182,9 @@ int main(int argc, char* argv[]){
                             break;
 
                         case OUT_CODE:
+                            //il client notifica al server la disconnessione
                             //out_c(code, server_com);
+                            exit(0);
                             break;
 
                         default:

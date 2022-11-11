@@ -55,10 +55,27 @@ struct user_record{
       char* timestamp_out;
 };
 
+//la struttura viene aggiornata ogni qualvolta viene inviato ad un utente attualmente offline
 struct messaggio_pendente{
     char* utente;
-    int messaggi_pendenti;
+    int messaggi_pendenti; //il numero dei messaggi pendenti, viene incrementato ogni qualvolta viene inviato un messaggio o azzerato quando viene chiamata la show dal client
     time_t timestamp;
+};
+
+//ogni messaggio inviato (sia ai client che al server) è composto dall'username
+//del mittente, dal timestamp e dal messaggio vero e proprio
+struct sent_message{
+    char* utente;
+    char* messaggio;
+    time_t timestamp;
+};
+
+//lista contenente tutti i destinatari di un messaggio
+//la chat singola è un caso particolare di chat di gruppo
+struct destinatari{
+    char* username;
+    int socket;
+    struct destinatari* next;
 };
 
 
