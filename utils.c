@@ -359,6 +359,20 @@ void stampa_lista_utenti_online(struct utenti_online *testa){
 
 
 
+//funzione che stampa la cronologia della chat da un file dato in input
+void print_chat(char *path){
+    FILE *fp;
+    char c;
+
+    fp = fopen(path, "r");
+
+    while((c = fgetc(fp)) != EOF)
+        printf("%c", c);
+
+    fclose(fp);
+}
+
+
 
 
 
@@ -553,13 +567,10 @@ void show_c(int code, char *utente, int sock){
 //la funzione si occupa di creare il file di chat tra i due utenti
 //e di inviare al server il nome dell'utente con cui si vuole chattare
 void chat_init_c(int code, char* username, int server_sock){
-    int ack, port, dest_sock;
-    uint32_t msg_len, code_t, port_t;
+    int ack;
+    uint32_t code_t;
     bool is_on;
-    char buffer[BUFSIZE];
-    struct sent_message msg;
     struct destinatari dest;
-    //apro file di chat in lettura e scrittura
     FILE *fp;
     char* path;
     
@@ -591,25 +602,20 @@ void chat_init_c(int code, char* username, int server_sock){
     }
 
     //verifico se il file di chat con username esiste già
-    //se esiste già, lo apro in lettura e scrittura
-    //se non esiste, lo creo
-    path = "user/chat/";
+    //se esiste già, stampo la cronologia della chat
+    path = "user/chat/";//potrei cambiare il path
     path = strcat(path, username);
     if(access(path, F_OK) == 0){
-        //il file esiste già
-        fp = fopen(path, "a+");
+        //aggiorno, se non è già stato fatto, la cronologia della chat
+        //chiamando la show
+        //il file esiste già, dunque
+        //stampo la cronologia della chat
+        print_chat(path);
     }
     if(access(path, F_OK) != 0){
         //il file non esiste, lo creo
         fp = fopen(path, "w+");
     }
-
-
-    //invio il msg come struct
-    /*msg_len = sizeof(struct sent_message);
-    msg_len = htonl(msg_len);
-    send(server_sock, (void*)&msg_len, sizeof(uint32_t), 0);
-    send(server_sock, (void*)&msg, sizeof(struct sent_message), 0);*/
 
     //il server mi informa se l'utente è online tramite is_on
     recv(server_sock, (void*)&is_on, sizeof(bool), 0);
@@ -617,11 +623,8 @@ void chat_init_c(int code, char* username, int server_sock){
 
     if(is_on == false){
         //il client invierà i messaggi al server, che li memorizza in attesa che l'utente si connetta
-        printf("L'utente non è online, i messaggi saranno inviati al server e verranno consegnati quando l'utente si connetterà\n");
+        printf("L'utente %s non è online, i messaggi saranno inviati al server e verranno consegnati quando %s si connetterà\n", username, username);
         
-        //MANCA LA PARTE IN CUI IL CLIENT RICEVE MESSAGGI DALL'UTENTE O DAL SERVER
-        //MAGARI GESTIRE CON UNA FORK/SELECT NELLA NUOVA FUNZIONE
-
         //aggiungo il server alla lista dei destinatari
         dest.username = "server";
         dest.socket = server_sock;
@@ -631,19 +634,19 @@ void chat_init_c(int code, char* username, int server_sock){
 
     }
     if(is_on == true){
-        //il client invierà i messaggi direttamente all'utente
-        printf("L'utente è online, i messaggi saranno inviati direttamente all'utente\n");
+        //devo connettermi all'utente
+        int port, dest_sock;
+        uint32_t port_t;
+        struct sockaddr_in dest_addr;
 
-        //
+        //il client invierà i messaggi direttamente all'utente
+        printf("%s è online, i messaggi gli saranno inviati direttamente\n", username);
+
+        
         //recupero la porta dell'utente 
         recv(server_sock, (void*)&port_t, sizeof(uint16_t), 0);
         port = ntohs(port_t);
-
-        //devo connettermi all'utente
-        //creo la socket
-        int client_sock;
-        struct sockaddr_in dest_addr;
-        
+       
         //pulizia della memoria e gestione indirizzi del destinatario
         memset(&dest_addr, 0, sizeof(dest_addr));
         dest_addr.sin_family = AF_INET;

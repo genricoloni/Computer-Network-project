@@ -10,6 +10,7 @@ int main(int argc, char* argv[]){
     int code, i;
     int server_com, cl_listener, ret;
     int fdmax = 0;
+    uint32_t addrlen, newfd;
 
     struct credenziali credenziali;
 
@@ -138,6 +139,16 @@ int main(int argc, char* argv[]){
         printf("4)share username file_name  -->condividi il file file_name con tutti gli utenti connessi\n");
         printf("5)out                       -->disconnetti l'utente\n");
 
+    FD_ZERO(&master);
+	FD_ZERO(&readfds);
+	FD_SET(0, &master);
+
+    bind(cl_listener, (struct sockaddr*)&client_listener_addr, sizeof(client_listener_addr));
+    listen(cl_listener, 50);
+
+    FD_SET(cl_listener, &master);
+    fdmax = cl_listener;
+
 
     while(1){
         readfds = master;
@@ -196,6 +207,35 @@ int main(int argc, char* argv[]){
 
                 
                     
+                } else{
+                    if(i == cl_listener){
+                        //è una nuova connessione
+                        addrlen = sizeof(client_addr);
+                        newfd = accept(cl_listener, (struct sockaddr*)&client_addr, &addrlen);
+                        if(newfd == -1){
+                            perror("Errore in fase di accettazione della connessione");
+                        } else{
+                            FD_SET(newfd, &master);
+                            if(newfd > fdmax)
+                                fdmax = newfd;
+                            printf("Nuova connessione da %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+                        }
+                    } else{
+                        //è un messaggio da un client già connesso
+                        memset(&buffer, 0, sizeof(buffer));
+                        ret = recv(i, buffer, sizeof(buffer), 0);
+                        if(ret <= 0){
+                            if(ret == 0){
+                                printf("Connessione chiusa da %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+                            } else{
+                                perror("Errore in fase di ricezione del messaggio");
+                            }
+                            close(i);
+                            FD_CLR(i, &master);
+                        } else{
+                            /// è un messaggio ricevuto
+                        }
+                    }
                 }
             }
         }
