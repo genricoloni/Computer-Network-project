@@ -13,6 +13,10 @@
 
 typedef enum { false, true } bool;
 
+//la lista dei destinatari deve essere visibile globalmente
+struct destinatari* destinatari = NULL;
+
+
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER CLIENT E SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /********************************************************************************************************/
@@ -115,6 +119,22 @@ void rimuovi_utente(struct utenti_online **head, uint32_t todelete){
       return;
 }
 
+//la funzione viene chiamata dal client: aggiunge username alla lista dei destinatari
+void inserisci_destinatario(struct destinatari **head, char *Username, int socket)
+{
+    struct destinatari *node = (struct destinatari *)malloc(sizeof(struct destinatari));
+    node->socket = socket;
+    node->next = NULL;
+    strcpy(node->username, Username);
+    // il nodo puntato da elem è gia inzializzato quando chiamo la routine
+    if (*head == NULL)
+          *head = node;
+    else
+    { // piazza elem in testa alla lista
+          node->next = *head;
+          *head = node;
+    }
+}
 
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
@@ -149,7 +169,7 @@ void aggiorna_registro_utente(char *Username, int port){
 //la funzione restituisce false se l'username non è 
 //gia presente tra gli utenti registrati
 bool check_presenza_utente(struct credenziali cred){
-    FILE *cr = fopen("reg_users.txt", "rb");
+    FILE *cr = fopen("reg_users.txt", "a+");
     struct credenziali temp_cr;
 
     while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
@@ -165,7 +185,7 @@ bool check_presenza_utente(struct credenziali cred){
 //la funzione restituisce true se l'username è gia presente
 //tra gli utenti registrati && la password associata è corretta
 bool check_login_utente(struct credenziali cred){
-    FILE *cr = fopen("reg_users.txt", "rb");
+    FILE *cr = fopen("reg_users.txt", "a+");
     struct credenziali temp_cr;
 
     while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
@@ -340,6 +360,49 @@ void stampa_lista_utenti_online(struct utenti_online *testa){
 
 }
 
+//funzione usata dal server quando un client notifica la sua disconnessione
+//l'utente viene rimosso dalla lista degli utenti online
+//e viene aggiornato il file relativo al registro degli utenti
+void out_s(struct utenti_online **testa, char *username){
+    struct utenti_online *tmp = *testa;
+    struct utenti_online *prec = NULL;
+    struct user_record *tmp_r = NULL;
+    time_t curtime;
+    FILE *fp = fopen("utenti_online.txt", "a");
+
+    strcpy(tmp_r->Username, username);
+    
+
+
+    while(tmp != NULL){
+        if(strcmp(tmp->username, username) == 0){
+            //recupero timestamp di connessione
+            tmp_r->timestamp_in = tmp->timestamp_in;
+            //recupero la porta sul quale il device era connesso
+            tmp_r->Port = tmp->port;
+            if(prec == NULL){
+                *testa = tmp->pointer;
+                free(tmp);
+                return;
+            }
+            prec->pointer = tmp->pointer;
+            free(tmp);
+            return;
+        }
+        prec = tmp;
+        tmp = tmp->pointer;
+    }
+
+    //aggiorno timestamp di disconnessione
+    tmp_r->timestamp_out = time(&curtime);
+
+    //scrivo su file
+    fprintf(fp, "%s %d %s %s", tmp_r->Username, tmp_r->Port, ctime(&tmp_r->timestamp_in), ctime(&tmp_r->timestamp_out));
+
+    return;
+
+
+}
 
 
 /********************************************************************************************************/
@@ -563,14 +626,13 @@ void show_c(int code, char *utente, int sock){
 }
 
 
-//funzione che inizializza una chat tra due utenti
+//funzione che inizializza una chat tra due utenti;
 //la funzione si occupa di creare il file di chat tra i due utenti
 //e di inviare al server il nome dell'utente con cui si vuole chattare
 void chat_init_c(int code, char* username, int server_sock){
     int ack;
     uint32_t code_t;
     bool is_on;
-    struct destinatari dest;
     FILE *fp;
     char* path;
     
@@ -625,10 +687,7 @@ void chat_init_c(int code, char* username, int server_sock){
         //il client invierà i messaggi al server, che li memorizza in attesa che l'utente si connetta
         printf("L'utente %s non è online, i messaggi saranno inviati al server e verranno consegnati quando %s si connetterà\n", username, username);
         
-        //aggiungo il server alla lista dei destinatari
-        dest.username = "server";
-        dest.socket = server_sock;
-        dest.next = NULL;
+        inserisci_destinatario(destinatari, "server", server_sock);
 
         //chiamo una sottofunzione che si occupa della chat vera e propria
 
@@ -660,9 +719,7 @@ void chat_init_c(int code, char* username, int server_sock){
         dest_sock = connect(dest_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr));
 
         //aggiungo l'utente alla lista dei destinatari
-        dest.username = username;
-        dest.socket = dest_sock;
-        dest.next = NULL;
+        inserisci_destinatario(destinatari, username, dest_sock);
 
         //chiamo una sottofunzione che si occupa della chat vera e propria
 
@@ -670,4 +727,39 @@ void chat_init_c(int code, char* username, int server_sock){
     
 
 
+}
+
+
+//funzione che notifica al server e ai destinatari che il client si sta disconnettendo
+void out_c(int code, int server_sock){
+    uint32_t code_t;
+    int ack;
+    struct destinatari* tmp;
+
+    code_t = htonl(code);
+
+    //invio codice al server
+    send(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
+
+    //aspetto conferma
+    recv(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
+    ack = ntohl(code_t);
+
+    if(ack != ACK){
+        perror("Errore in fase di comunicazione col server\n");
+        return;
+    }
+    //chiudo la socket con il server
+    close(server_sock);
+
+    //chiudo le socket con i destinatari
+    while(destinatari != NULL){
+        close(destinatari->socket);
+        tmp = destinatari;
+        destinatari = destinatari->next;
+        free(tmp);
+    }
+
+    //chiudo il client
+    exit(0);
 }

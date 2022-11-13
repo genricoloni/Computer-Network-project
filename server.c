@@ -80,9 +80,11 @@ int main(int argc, char* argv[]){
                     }
                     
                 } else{
+                    
                     if(i == listener){
+                        //nuova connessione
                         addrlen = sizeof(client_addr);
-                        communicate = accept(i, (struct sockaddr*)&client_addr, (socklen_t*)&addrlen);
+                        communicate = accept(listener, (struct sockaddr*)&client_addr, (socklen_t*)&addrlen);
 
                         fdmax = (communicate > fdmax) ? communicate : fdmax;
 
@@ -102,10 +104,10 @@ int main(int argc, char* argv[]){
                             // chiudo il socket connesso sul server
                             rimuovi_utente(&utenti_online, i);
 
-                            close(i);
+                            close(listener);
 
                             // rimuovo il descrittore newfd da quelli da monitorare
-                            FD_CLR(i, &master);
+                            FD_CLR(listener, &master);
 
                             printf("CHIUSURA client %d rilevata!\n", i);
                             
@@ -133,6 +135,22 @@ int main(int argc, char* argv[]){
                             res = login_s(i, &utenti_online);
                             if(res == true)
                                 printf("UTENTE  %s ONLINE\n", utenti_online->username);
+                            break;
+
+                        case HANG_CODE:
+                            //hang_s(i, &utenti_online);
+                            break;
+
+                        case SHOW_CODE:
+                            //show_s(i, &utenti_online);
+                            break;
+                        
+                        case CHAT_CODE:
+                            //chat_s(i, &utenti_online);
+                            break;
+
+                        case OUT_CODE:
+                            out_s(i, &utenti_online);
                             break;
 
                         default:

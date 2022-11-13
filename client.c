@@ -194,7 +194,7 @@ int main(int argc, char* argv[]){
 
                         case OUT_CODE:
                             //il client notifica al server la disconnessione
-                            //out_c(code, server_com);
+                            out_c(code, server_com);
                             exit(0);
                             break;
 
