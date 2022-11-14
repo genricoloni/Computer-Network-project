@@ -49,7 +49,7 @@ struct credenziali_t{
 
 // descrittore record di history di un utente (viene utilizzato per tenere traccia dei login e dei logout)
 struct user_record{
-      char Username[50];
+      char Username[USERN_CHAR];
       uint32_t Port;
       char* timestamp_in;
       char* timestamp_out;
@@ -57,7 +57,7 @@ struct user_record{
 
 //la struttura viene aggiornata ogni qualvolta viene inviato ad un utente attualmente offline
 struct messaggio_pendente{
-    char* utente;
+    char utente[USERN_CHAR];
     int messaggi_pendenti; //il numero dei messaggi pendenti, viene incrementato ogni qualvolta viene inviato un messaggio o azzerato quando viene chiamata la show dal client
     time_t timestamp;
 };
@@ -65,7 +65,7 @@ struct messaggio_pendente{
 //ogni messaggio inviato (sia ai client che al server) è composto dall'username
 //del mittente, dal timestamp e dal messaggio vero e proprio
 struct sent_message{
-    char* utente;
+    char utente[USERN_CHAR];
     char* messaggio;
     time_t timestamp;
 };
@@ -73,7 +73,7 @@ struct sent_message{
 //lista contenente tutti i destinatari di un messaggio
 //la chat singola è un caso particolare di chat di gruppo
 struct destinatari{
-    char* username;
+    char username[USERN_CHAR];
     int socket;
     struct destinatari* next;
 };

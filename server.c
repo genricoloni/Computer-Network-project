@@ -1,12 +1,13 @@
 #include "utils.c"
 
+
 int main(int argc, char* argv[]){
     uint32_t listener, communicate, ret, addrlen, fdmax, i;
 
     fd_set master, readfds;
 
     struct sockaddr_in server_addr, client_addr;
-    struct utenti_online* utenti_online = NULL;
+    
 
     int port;
     int code;
@@ -146,11 +147,11 @@ int main(int argc, char* argv[]){
                             break;
                         
                         case CHAT_CODE:
-                            //chat_s(i, &utenti_online);
+                            chat_s(i);
                             break;
 
                         case OUT_CODE:
-                            out_s(i, &utenti_online);
+                            out_s(&utenti_online, get_username(i));
                             break;
 
                         default:
