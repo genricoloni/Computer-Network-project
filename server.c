@@ -120,19 +120,18 @@ int main(int argc, char* argv[]){
                      
                         code = ntohl(code_t);
                         
-                        
                         switch (code)
                         {
                         case SIGNUP_CODE:
                             //codice riconosciuto
                             signup_s(i);
+                            printf("signup completata\n");
                             //system("clear");
                             
                             break;
                         case IN_CODE:
                             
                             fflush(stdout);
-                            
                             res = login_s(i, &utenti_online);
                             if(res == true)
                                 printf("UTENTE  %s ONLINE\n", utenti_online->username);

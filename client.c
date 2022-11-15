@@ -6,7 +6,7 @@ int main(int argc, char* argv[]){
     
     char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE];
-    char* username = NULL, *filename = NULL;
+    char username[USERN_CHAR], *filename = NULL;
     int code, i;
     int server_com, cl_listener, ret;
     int fdmax = 0;
@@ -14,7 +14,7 @@ int main(int argc, char* argv[]){
 
     struct credenziali credenziali;
 
-    bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false, in = false;
+    bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false, in = false, login = true;
 
     // strutture per indirizzi
     struct sockaddr_in server_addr, client_addr, client_listener_addr;
@@ -75,7 +75,7 @@ int main(int argc, char* argv[]){
         if(su == false)
             printf("credenziali registrate correttmente!\n");
 
-        if(in == true)
+        if(login == false)
             printf("credenziali di accesso errate o utente non registrato!\n");
 
 
@@ -118,6 +118,7 @@ int main(int argc, char* argv[]){
 
             case IN_CODE:
                 in = login_c(code, credenziali, server_com, atoi(argv[1]));
+                login = in;
                 system("clear");
                 break;
 
@@ -127,7 +128,7 @@ int main(int argc, char* argv[]){
                 break;
     }   
     if(in == true)
-        break;
+        break;   
     }
 
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
@@ -162,9 +163,12 @@ int main(int argc, char* argv[]){
                     //è un comando dallo stdin
                     memset(&buffer, 0, sizeof(buffer));
                     memset(&command, 0, sizeof(command));
+                    memset(&username, 0, sizeof(username));
                     fgets(buffer, 1024 - 1, stdin);
-		            sscanf(buffer, "%s", command);
-
+                    printf("buffer: %s\n", buffer);
+                    sscanf(buffer, "%s %s", command, username);
+                    printf("comando: %s\n", command);
+                    printf("username: %s\n", username);
                     code = cmd_to_code(command);
                     
                     //switch case con tutti i casi per i diversi comandi
@@ -175,14 +179,14 @@ int main(int argc, char* argv[]){
 
                         case SHOW_CODE:
                             //prelevo username dal buffer
-                            sscanf(buffer, "%s %s", command, username);
-                            printf("Debug: %d %s %s\n", code, command, username);
+                            //sscanf(buffer, "%s %s", command, username);
                             show_c(code, username, server_com);
                             break;
 
                         case CHAT_CODE:
                             //prelevo username dal buffer
-                            sscanf(buffer, "%s %s", command, username);
+                            //sscanf(buffer, "%s %s", command, username);
+                            printf("Inizio chat con %s\n", username);
                             chat_init_c(code, username, server_com);
                             break;
 

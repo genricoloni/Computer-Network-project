@@ -43,7 +43,7 @@ int cmd_to_code(char* code){
         return IN_CODE;
     else if (strcmp(code, "hanging") == 0)
         return HANG_CODE;
-    else if (strcmp(code, "show"))
+    else if (strcmp(code, "show") == 0)
         return SHOW_CODE;
     else if (strcmp(code, "chat") == 0)
         return CHAT_CODE;
@@ -147,7 +147,7 @@ void inserisci_destinatario( char *Username, int socket)
 void aggiorna_registro_utente(char *Username, int port){
       struct user_record record;
       time_t rawtime;
-      FILE *fileptr = fopen("/sources_s/registro.txt", "rb+");
+      FILE *fileptr = fopen("./sources_s/registro.txt", "rb+");
       while (fread(&record, sizeof(struct user_record), 1, fileptr))
       {
             if (strcmp(record.Username, Username) == 0)
@@ -171,10 +171,10 @@ void aggiorna_registro_utente(char *Username, int port){
 
 //la funzione restituisce false se l'username non è 
 //gia presente tra gli utenti registrati
-bool check_presenza_utente(char* username){
-    FILE *cr = fopen("/sources_s/reg_users.txt", "a+");
+/*bool check_presenza_utente(char* username){
+    FILE *cr = fopen("./sources_s/reg_users.txt", "r");
     struct credenziali temp_cr;
-
+    fflush(stdout);
     while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
         if(strcmp(username, temp_cr.username) == 0){
             fclose(cr);
@@ -183,12 +183,27 @@ bool check_presenza_utente(char* username){
     }
     fclose(cr);
     return true;
+}*/
+
+//la funzione controlla che l'username appartenga ad un utente registrato
+bool check_presenza_utente(char* username){
+    FILE *cr = fopen("./sources_s/reg_users.txt", "r");
+    struct credenziali temp_cr;
+    fflush(stdout);
+    while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
+        if(strcmp(username, temp_cr.username) == 0){
+            fclose(cr);
+            return true;
+        }
+    }
+    fclose(cr);
+    return false;
 }
 
 //la funzione restituisce true se l'username è gia presente
 //tra gli utenti registrati && la password associata è corretta
 bool check_login_utente(struct credenziali cred){
-    FILE *cr = fopen("/sources_s/reg_users.txt", "a+");
+    FILE *cr = fopen("./sources_s/reg_users.txt", "r");
     struct credenziali temp_cr;
 
     while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
@@ -207,7 +222,7 @@ void inizializza_history(struct credenziali credenziali)
 {
 
 
-      FILE *fptr = fopen("/sources_s/registro.txt", "ab"); // modalità append per non sovrascrivere i record precedenti
+      FILE *fptr = fopen("registro.txt", "ab"); // modalità append per non sovrascrivere i record precedenti
       struct user_record record;
       strcpy(record.Username, credenziali.username);
       record.Port = 0;
@@ -221,9 +236,12 @@ void inizializza_history(struct credenziali credenziali)
 //la funzione aggiugne l'utente user alla lista degli utenti registrati, con la sua password
 //da usare dopo che si è verificato che l'username non è già stato registrato
 void registra_utente(struct credenziali cred){
-    FILE *fptr = fopen("/sources_s/reg_users.txt", "a");
-      fwrite(&cred, sizeof(cred), 1, fptr);
-      fclose(fptr);
+    FILE *fptr = fopen("./sources_s/reg_users.txt", "a");
+    printf("Debug: sto scrivendo nel file reg_users.txt\n");
+    fwrite(&cred, sizeof(cred), 1, fptr);
+    printf("Debug: ho scritto nel file reg_users.txt\n");
+    fclose(fptr);
+    printf("Debug: ho chiuso il file reg_users.txt\n");
 }
 
 //la funzione converte il comando server in un codice intero
@@ -300,7 +318,7 @@ void signup_s(int sock){
 
     res = ACK;
     res_t = htonl(res);
-    
+
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     
     msg_len = (sizeof(cred));
@@ -318,13 +336,15 @@ void signup_s(int sock){
         send(sock, (void*)&res_t, sizeof(uint32_t), 0);
         return;
     }
-    fflush(stdin);
+    fflush(stdout);
     //scrivo le credenziali su file
     registra_utente(cred);
+    printf("ho registrato l'utente %s\n", cred.username);
     //invio ACK di conferma
     res = ACK;
     res_t = htonl(res);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+    printf("ho inviato l'ACK\n");
     fflush(stdout);
     printf("UTENTE %s REGISTRATO AL SERVIZIO!\n", cred.username);
     return;
@@ -352,12 +372,13 @@ bool login_s(int sock, struct utenti_online **testa){
     //ricevo le credenziali
     recv(sock, (void*)&cred, msg_len, 0);
 
-    
+    printf("RICEVUTE CREDENZIALI UTENTE %s\n", cred.username);
     //controllo correttezza credenziali
     if(check_login_utente(cred) == false){
         //le credenziali non sono corrette
         res = IN_ERR;
         res_t = htonl(res);
+        printf("Debug: non ci sono credenziali\n");
         send(sock, (void*)&res_t, sizeof(uint32_t), 0);
         return false;
     }
@@ -368,6 +389,7 @@ bool login_s(int sock, struct utenti_online **testa){
     inserisci_utente(testa, cred.username, sock, port);
     inizializza_history(cred);
     aggiorna_registro_utente(cred.username, port);
+    printf("Debug dopo aggiorna registro utente\n");
     return true;
 
    
@@ -403,6 +425,9 @@ void chat_s(int socket){
     char destinatario[USERN_CHAR];
     char mittente[USERN_CHAR];
     char* path;
+    struct credenziali cred;
+    
+    
     
     res = ACK;
     res_t = htonl(res);
@@ -410,8 +435,9 @@ void chat_s(int socket){
     send(socket, (void*)&res_t, sizeof(uint32_t), 0);
 
     //ricevo username del destinatario
-    msg_len = sizeof(&destinatario);
-    recv(socket, (void*)&destinatario, msg_len, 0);
+    recv(socket, (void*)&cred, sizeof(cred), 0);
+    strcpy(destinatario, cred.username);
+    printf("RICEVUTO USERNAME DESTINATARIO: %s\n", destinatario);
 
     //verifico che il destinatario esista
 
@@ -616,7 +642,7 @@ bool login_c(int code, struct credenziali credenziali, int sock, int port){
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
     ack = ntohl(code_t);
 
-    if(ack == IN_ERR)
+    if(ack != ACK)
         return false;
     return true;
 }
@@ -731,11 +757,11 @@ void show_c(int code, char *utente, int sock){
 //e di inviare al server il nome dell'utente con cui si vuole chattare
 void chat_init_c(int code, char* username, int server_sock){
     int ack;
-    uint32_t code_t;
+    struct credenziali cred;
+    uint32_t code_t, msg_len;
     bool exist;
-    char* path = "/", user[USERN_CHAR];
+    char path[100], user[USERN_CHAR];
     
-
     code_t = htonl(code);
     
     //invio codice al server
@@ -749,9 +775,12 @@ void chat_init_c(int code, char* username, int server_sock){
         perror("Errore in fase di comunicazione col server\n");
         return;
     }
-
+    printf("username e' %s\n", username);
+    
     //invio il nome dell'utente con cui si vuole chattare
-    send(server_sock, (void*)&username, sizeof(&username), 0);
+    strcpy(cred.username, username);
+    
+    send(server_sock, (void*)&cred, sizeof(&cred), 0);
 
     //il server mi dice se l'utente esiste
     recv(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
@@ -761,16 +790,21 @@ void chat_init_c(int code, char* username, int server_sock){
         printf("L'utente non esiste\n");
         return;
     }
-
+    printf("prima della recv\n");
     //ricevo il mio username
     recv(server_sock, (void*)&user, sizeof(&user), 0);
 
+    printf("Dopo recv\n");
     //verifico se il file di chat con username esiste già;
     //se esiste già, stampo la cronologia della chat
 
-    path = strcat(path, user);
+    /*path = strcat(path, user);
     path = strcat(path, "/chat/");
-    path = strcat(path, username);
+    path = strcat(path, username);*/
+    //memset(path, 0, sizeof(path));
+    printf("dopo memset\n");
+    sprintf(path, "./%s/chat/%s", user, username);
+    printf("Dopo sprintf path vale %s\n", path);
     if(access(path, F_OK) == 0){
         exist = true;
         //aggiorno, se non è già stato fatto, la cronologia della chat
@@ -779,6 +813,8 @@ void chat_init_c(int code, char* username, int server_sock){
         //stampo la cronologia della chat
         print_chat(path);
     }
+    printf("exist vale %d\n", exist);
+
     //parametro da mettere nella funzione di chat, indica se serve o meno creare un file di chat
     
 
