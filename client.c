@@ -7,9 +7,8 @@ int main(int argc, char* argv[]){
     char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE];
     char username[USERN_CHAR], *filename = NULL;
-    int code, i;
-    int server_com, cl_listener, ret;
-    int fdmax = 0;
+    int code, cl_socket;
+    uint32_t server_com, cl_listener, ret, fdmax, i;
     uint32_t addrlen, newfd;
 
     struct credenziali credenziali;
@@ -17,7 +16,7 @@ int main(int argc, char* argv[]){
     bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false, in = false, login = true;
 
     // strutture per indirizzi
-    struct sockaddr_in server_addr, client_addr, client_listener_addr;
+    struct sockaddr_in server_addr, client_addr, cl_listener_addr, gp_addr;
 
     fd_set master, readfds;
 
@@ -26,7 +25,7 @@ int main(int argc, char* argv[]){
 	FD_ZERO(&master);
 	FD_ZERO(&readfds);
 
-    DEVICE_PORT = findPort(argc, argv);
+    OWN_PORT = findPort(argc, argv);
 
     //pulizia memoria e gestione indirizzi del SERVER
     memset(&server_addr, 0, sizeof(server_addr));
@@ -43,17 +42,20 @@ int main(int argc, char* argv[]){
 	
 
     //pulizia memoria e gestione indirizzi del CLIENT
-    memset(&client_addr, 0, sizeof(client_addr));
-    client_listener_addr.sin_family = AF_INET;
-    client_listener_addr.sin_port = htons(atoi(argv[1]));
-    inet_pton(AF_INET, "127.0.0.1", &client_listener_addr.sin_addr);
+	memset(&client_addr, 0, sizeof(client_addr));
+	cl_listener_addr.sin_family = AF_INET;
+	cl_listener_addr.sin_port = htons(atoi(argv[1]));
+	inet_pton(AF_INET, "127.0.0.1", &cl_listener_addr.sin_addr);
 
-    cl_listener = socket(AF_INET, SOCK_STREAM, 0);
-    bind(cl_listener, (struct sockaddr*)&client_listener_addr, sizeof(client_listener_addr));
-    listen(cl_listener, 50);
+	cl_listener = socket(AF_INET, SOCK_STREAM, 0);
+	bind(cl_listener, (struct sockaddr *)&cl_listener_addr, sizeof(cl_listener_addr));
+	listen(cl_listener, 50);
 
-    FD_SET(cl_listener, &master);
-    fdmax = cl_listener;
+	FD_SET(cl_listener, &master);
+	fdmax = cl_listener;
+
+ 
+
    
    /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU DI LOGIN/SIGNUP>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
     
@@ -140,16 +142,7 @@ int main(int argc, char* argv[]){
         printf("4)share username file_name  -->condividi il file file_name con tutti gli utenti connessi\n");
         printf("5)out                       -->disconnetti l'utente\n");
 
-    FD_ZERO(&master);
-	FD_ZERO(&readfds);
-	FD_SET(0, &master);
-
-    bind(cl_listener, (struct sockaddr*)&client_listener_addr, sizeof(client_listener_addr));
-    listen(cl_listener, 50);
-
-    FD_SET(cl_listener, &master);
-    fdmax = cl_listener;
-
+    fflush(stdin);
 
     while(1){
         readfds = master;
@@ -187,7 +180,17 @@ int main(int argc, char* argv[]){
                             //prelevo username dal buffer
                             //sscanf(buffer, "%s %s", command, username);
                             printf("Inizio chat con %s\n", username);
-                            chat_init_c(code, username, server_com);
+                            code = chat_init_c(code, username, server_com);
+                            printf("porta ricevuta: %d\n", code);
+
+                            memset(&client_addr, 0, sizeof(client_addr));
+                            client_addr.sin_family = AF_INET;
+                            client_addr.sin_port = htons(code);
+                            inet_pton(AF_INET, "127.0.0.1", &client_addr.sin_addr);
+                            cl_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+                            ret = connect(cl_socket, (struct sockaddr*)&client_addr, sizeof(client_addr));
+                            printf("connect: %d\n", ret);
                             break;
 
                         case SHARE_CODE:
@@ -214,23 +217,23 @@ int main(int argc, char* argv[]){
                 } else{
                     if(i == cl_listener){
                         //è una nuova connessione
-                        addrlen = sizeof(client_addr);
-                        newfd = accept(cl_listener, (struct sockaddr*)&client_addr, &addrlen);
-                        if(newfd == -1){
-                            perror("Errore in fase di accettazione della connessione");
-                        } else{
-                            FD_SET(newfd, &master);
-                            if(newfd > fdmax)
-                                fdmax = newfd;
-                            printf("Nuova connessione da %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
-                        }
+                                               //nuova connessione
+                        addrlen = sizeof(gp_addr);
+                        ret = accept(i, (struct sockaddr*)&gp_addr, (socklen_t*)&addrlen);
+
+                        fdmax = (ret > fdmax) ? ret : fdmax;
+
+                        FD_SET(ret, &master);
+
+                        printf("Nuova connessione \n");
+                        
                     } else{
                         //è un messaggio da un client già connesso
                         memset(&buffer, 0, sizeof(buffer));
                         ret = recv(i, buffer, sizeof(buffer), 0);
                         if(ret <= 0){
                             if(ret == 0){
-                                printf("Connessione chiusa da %s:%d\n", inet_ntoa(client_addr.sin_addr), ntohs(client_addr.sin_port));
+                                printf("Connessione chiusa da %s:%d\n", inet_ntoa(cl_listener_addr.sin_addr), ntohs(cl_listener_addr.sin_port));
                             } else{
                                 perror("Errore in fase di ricezione del messaggio");
                             }

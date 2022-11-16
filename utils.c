@@ -12,7 +12,7 @@
 #include "costanti.h"
 
 typedef enum { false, true } bool;
-
+int OWN_PORT;
 //la lista dei destinatari deve essere visibile globalmente
 struct destinatari* destinatari = NULL;
 
@@ -446,13 +446,13 @@ void chat_s(int socket){
         res = IN_ERR;
         res_t = htonl(res);
         send(socket, (void*)&res_t, sizeof(uint32_t), 0);
-        return;
-    } else{
-        //il destinatario esiste
-        res = ACK;
-        res_t = htonl(res);
-        send(socket, (void*)&res_t, sizeof(uint32_t), 0);
-    }
+        return;}
+    
+    //il destinatario esiste
+    res = ACK;
+    res_t = htonl(res);
+    send(socket, (void*)&res_t, sizeof(uint32_t), 0);
+    
 
     //invio username del mittente
     strcpy(mittente, get_username(socket));
@@ -468,17 +468,18 @@ void chat_s(int socket){
         send(socket, (void*)&res_t, sizeof(uint32_t), 0);
         //invio al client le informazioni per avviare la chat P2P
         port = get_port(destinatario);
+        printf("Debug: la porta del destinatario è %d\n", port);
         port_t = htonl(port);
         send(socket, (void*)&port_t, sizeof(uint32_t), 0);
         return;
-    } else{
+    } 
     //notifico il client che username non è online
     res = ERR_CODE;
     res_t = htonl(res);
     send(socket, (void*)&res_t, sizeof(uint32_t), 0);
     //memorizzo il messaggio come messaggio pendente
     
-    }
+    
         
 }
 
@@ -539,11 +540,11 @@ void out_s(struct utenti_online **testa, char *username){
 //deve poter inviare più messaggi, ricevere più messaggi e poter terminare la chat;
 //inoltre deve poter ricevere messaggi anche quando non è in attesa di un input da tastiera.
 //per questo motivo è stata utilizzata la select:
-//la select permette di gestire più socket contemporaneamente;
-//in questo caso, oltre al socket della chat, viene gestito anche lo stdin
-//quindi la funzione attende un input da tastiera o un messaggio da un altro utente,
-//quando riceve un messaggio da un altro utente, lo stampa a video
-//quando riceve un input da tastiera, lo invia al destinatario
+//la select permette di gestire più socket contemporaneamente
+//e di poter ricevere messaggi anche quando non si è in attesa di un input da tastiera
+void chat_c(int socket){
+
+}
 
 
 
@@ -755,7 +756,7 @@ void show_c(int code, char *utente, int sock){
 //funzione che inizializza una chat tra due utenti;
 //la funzione si occupa di creare il file di chat tra i due utenti
 //e di inviare al server il nome dell'utente con cui si vuole chattare
-void chat_init_c(int code, char* username, int server_sock){
+int chat_init_c(int code, char* username, int server_sock){
     int ack;
     struct credenziali cred;
     uint32_t code_t, msg_len;
@@ -773,7 +774,7 @@ void chat_init_c(int code, char* username, int server_sock){
 
     if(ack != ACK){
         perror("Errore in fase di comunicazione col server\n");
-        return;
+        return -1;
     }
     printf("username e' %s\n", username);
     
@@ -788,7 +789,7 @@ void chat_init_c(int code, char* username, int server_sock){
 
     if(ack != ACK){
         printf("L'utente non esiste\n");
-        return;
+        return -1;
     }
     printf("prima della recv\n");
     //ricevo il mio username
@@ -829,7 +830,7 @@ void chat_init_c(int code, char* username, int server_sock){
         printf("L'utente %s non è online, i messaggi saranno inviati al server e verranno consegnati quando %s si connetterà\n", username, username);
         
         inserisci_destinatario("server", server_sock);
-
+        return 0;
         //chiamo una sottofunzione che si occupa della chat vera e propria
 
     }
@@ -837,7 +838,6 @@ void chat_init_c(int code, char* username, int server_sock){
         //devo connettermi all'utente
         int port, dest_sock;
         uint32_t port_t;
-        struct sockaddr_in dest_addr;
 
         //il client invierà i messaggi direttamente all'utente
         printf("%s è online, i messaggi gli saranno inviati direttamente\n", username);
@@ -845,26 +845,30 @@ void chat_init_c(int code, char* username, int server_sock){
         
         //recupero la porta dell'utente 
         recv(server_sock, (void*)&port_t, sizeof(uint32_t), 0);
-        port = ntohs(port_t);
+        port = ntohl(port_t);
        
+        printf("porta ricevuta %d\n", port);
+        
         //pulizia della memoria e gestione indirizzi del destinatario
-        memset(&dest_addr, 0, sizeof(dest_addr));
-        dest_addr.sin_family = AF_INET;
-        dest_addr.sin_port = htons(port);
-        inet_pton(AF_INET, "127.0.0.1", &dest_addr.sin_addr);
+        //memset(&cl_addr, 0, sizeof(cl_addr));
+        /*cl_addr->sin_family = AF_INET;
+		cl_addr->sin_port = htonl(port);
+		inet_pton(AF_INET, "127.0.0.1", &cl_addr->sin_addr);
+		dest_sock = socket(AF_INET, SOCK_STREAM, 0);
+        */
 
-        //creazione della socket
-        dest_sock = socket(AF_INET, SOCK_STREAM, 0);
+        printf("dest_sock vale %d\n", dest_sock);
 
+        printf("prima del connect\n");
         //connessione al destinatario
-        dest_sock = connect(dest_sock, (struct sockaddr*)&dest_addr, sizeof(dest_addr));
-
+        //dest_sock = connect(dest_sock, (struct sockaddr*)&cl_addr, sizeof(cl_addr));
+        printf("dopo il connec: la connect vale%d\n", dest_sock);
         //aggiungo l'utente alla lista dei destinatari
         inserisci_destinatario(username, dest_sock);
-
+        printf("dopo inserisci_destinatario\n");
         //chiamo una sottofunzione che si occupa della chat vera e propria
-
-        return;
+        //chat_c(dest_sock);
+        return port;
     }
     
 

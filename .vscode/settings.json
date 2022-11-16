@@ -14,5 +14,6 @@
         "cstring": "c",
         "ctime": "c",
         "cwchar": "c"
-    }
+    },
+    "C_Cpp.errorSquiggles": "Disabled"
 }

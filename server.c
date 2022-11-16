@@ -98,7 +98,7 @@ int main(int argc, char* argv[]){
 
                         int code;
                         uint32_t code_t;
-                        ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);;
+                        ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);
                         if(ret == 0){
                             printf("dopo recv con ret == 0");
                             // il client ha chiuso il socket, quindi
