@@ -173,10 +173,12 @@ void aggiorna_registro_utente(char *Username, int port){
 //la funzione controlla che l'username appartenga ad un utente registrato
 bool check_presenza_utente(char* username){
     FILE *cr = fopen("./sources_s/reg_users.txt", "r");
+    char buffer[USERN_CHAR];
     struct credenziali temp_cr;
     fflush(stdout);
-    while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
-        if(strcmp(username, temp_cr.username) == 0){
+    while(fgets(buffer, USERN_CHAR, cr)){
+        sscanf(buffer, "%s", buffer);
+        if(strcmp(username, buffer) == 0){
             fclose(cr);
             return true;
         }
@@ -197,15 +199,15 @@ int string_length(char *string){
 //tra gli utenti registrati && la password associata è corretta
 bool check_login_utente(struct credenziali cred){
     FILE *cr = fopen("./sources_s/reg_users.txt", "r");
-    char* temp_user, *temp_pw, *temp;
+    char* temp_user, *temp_pw, *temp, buffer[20];
     int len = string_length(cred.username);
     fflush(stdout);
-    //leggo esattamente il numero di caratteri che compongono username da controllare
-    //e non l'intera struct
-    while(fread(&temp_user, len, 1, cr)){
-        fread(&temp, 1, 1, cr);
-        len = string_length(cred.password);
-        fread(&temp_pw, len, 1, cr);
+
+    printf("Debug: prima del while\n");
+    //leggo due parole alla volta con fgets
+    while(fgets(buffer, 20, cr)){
+        printf("Debug: dentro al while\n");
+        sscanf(buffer, "%s %s", &temp_user, &temp_pw);
         printf("Debug: username-> %s\n", &temp_user);
         printf("Debug: password-> %s\n", &temp_pw);
         if(strcmp(cred.username, &temp_user) == 0){
@@ -215,9 +217,13 @@ bool check_login_utente(struct credenziali cred){
                 printf("Debug: login effettuato\n");
                 return true;
             }
+
+
         }
     }
-    printf("Debug: dopo while\n");
+
+    //leggo all'inizio di una nuova riga
+    
 
     fclose(cr);
     return false;
@@ -252,6 +258,7 @@ void inizializza_history(char *Username, int port){
 void registra_utente(struct credenziali user){
     FILE *cr = fopen("./sources_s/reg_users.txt", "a");
     fprintf(cr, "%s %s", user.username, user.password);
+    fprintf(cr, "\n");
     fclose(cr);
     return;
 }
@@ -489,29 +496,6 @@ void chat_s(int socket){
     
         
 }
-
-
-
-
-
-//funzione usata dal server quando un client notifica la sua disconnessione
-//l'utente viene rimosso dalla lista degli utenti online
-//e viene aggiornato il file relativo al registro degli utenti
-/*void out_s(struct utenti_online **testa, char *username){
-    struct utenti_online *tmp = *testa;
-    struct utenti_online *prec = NULL;
-    struct user_record *tmp_r = NULL;
-    time_t curtime;
-    FILE *fp = fopen("utenti_online.txt", "a");
-    strcpy(tmp_r->Username, username);
-    //aggiorno timestamp di disconnessione
-    tmp_r->timestamp_out = ctime(&curtime);
-
-    //scrivo su file
-    fprintf(fp, "%s %d %s %s", tmp_r->Username, tmp_r->Port, tmp_r->timestamp_in, tmp_r->timestamp_out);
-
-    return;
-}*/
 
 //la funzione trova la entry relativa ad username nel file registro.txt, aggiorna
 //il timestamp di disconnessione e scrive su file
