@@ -50,7 +50,7 @@ struct credenziali_t{
 // descrittore record di history di un utente (viene utilizzato per tenere traccia dei login e dei logout)
 struct user_record{
       char Username[USERN_CHAR];
-      uint32_t Port;
+      int Port;
       char* timestamp_in;
       char* timestamp_out;
 };

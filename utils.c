@@ -68,7 +68,7 @@ void wait(){
 /********************************************************************************************************/
 
 //la funzione viene chiamata dal server quando un utente effettua un login: 
-//verrà aggiunto alla liusta di utenti online
+//verrà aggiunto alla lista di utenti online
 void inserisci_utente(struct utenti_online **head, char *Username, uint32_t socket, int port)
 {
     time_t curtime;
@@ -169,21 +169,6 @@ void aggiorna_registro_utente(char *Username, int port){
       return;
 }
 
-//la funzione restituisce false se l'username non è 
-//gia presente tra gli utenti registrati
-/*bool check_presenza_utente(char* username){
-    FILE *cr = fopen("./sources_s/reg_users.txt", "r");
-    struct credenziali temp_cr;
-    fflush(stdout);
-    while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
-        if(strcmp(username, temp_cr.username) == 0){
-            fclose(cr);
-            return false;
-        }
-    }
-    fclose(cr);
-    return true;
-}*/
 
 //la funzione controlla che l'username appartenga ad un utente registrato
 bool check_presenza_utente(char* username){
@@ -200,49 +185,77 @@ bool check_presenza_utente(char* username){
     return false;
 }
 
+//funzione che restituisce il numero di caratteri che compongono la stringa
+int string_length(char *string){
+    int i = 0;
+    while(string[i] != '\0')
+        i++;
+    return i;
+}
+
 //la funzione restituisce true se l'username è gia presente
 //tra gli utenti registrati && la password associata è corretta
 bool check_login_utente(struct credenziali cred){
     FILE *cr = fopen("./sources_s/reg_users.txt", "r");
-    struct credenziali temp_cr;
-
-    while(fread(&temp_cr, sizeof(temp_cr), 1, cr)){
-        if(strcmp(cred.username, temp_cr.username) == 0
-        && strcmp(cred.password, temp_cr.password) == 0){
-            fclose(cr);
-            return true;
+    char* temp_user, *temp_pw, *temp;
+    int len = string_length(cred.username);
+    fflush(stdout);
+    //leggo esattamente il numero di caratteri che compongono username da controllare
+    //e non l'intera struct
+    while(fread(&temp_user, len, 1, cr)){
+        fread(&temp, 1, 1, cr);
+        len = string_length(cred.password);
+        fread(&temp_pw, len, 1, cr);
+        printf("Debug: username-> %s\n", &temp_user);
+        printf("Debug: password-> %s\n", &temp_pw);
+        if(strcmp(cred.username, &temp_user) == 0){
+            printf("Debug in primo if\n");
+            if(strcmp(cred.password, &temp_pw) == 0){
+                fclose(cr);
+                printf("Debug: login effettuato\n");
+                return true;
+            }
         }
     }
+    printf("Debug: dopo while\n");
+
     fclose(cr);
     return false;
 }
 
-// inizializza un utente nel file history
-void inizializza_history(struct credenziali credenziali)
-{
 
+//aggiungo una nuova entry al registro degli utenti 
+void inizializza_history(char *Username, int port){
+    struct user_record record;
+    time_t rawtime, timestamp;
+    FILE *fileptr = fopen("./sources_s/registro.txt", "ab+");
 
-      FILE *fptr = fopen("registro.txt", "ab"); // modalità append per non sovrascrivere i record precedenti
-      struct user_record record;
-      strcpy(record.Username, credenziali.username);
-      record.Port = 0;
-      record.timestamp_in = 0;
-      record.timestamp_out = 0;
-      fwrite(&record, sizeof(struct credenziali), 1, fptr);
-
-      fclose(fptr);
+    //aggiungo un record al registro
+    timestamp = time(&rawtime);
+    strcpy(record.Username, Username);
+    record.timestamp_in = ctime(&timestamp);
+    record.timestamp_out = '\0';
+    record.Port = port;
+    fflush(stdout);
+    //faccio la fseek
+    fseek(fileptr, 0, SEEK_END);
+    fprintf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
+    fclose(fileptr);
+    return;
 }
 
-//la funzione aggiugne l'utente user alla lista degli utenti registrati, con la sua password
+
+
+
+//la funzione aggiugne tramite fprintf l'utente user alla lista degli utenti registrati, con la sua password
 //da usare dopo che si è verificato che l'username non è già stato registrato
-void registra_utente(struct credenziali cred){
-    FILE *fptr = fopen("./sources_s/reg_users.txt", "a");
-    printf("Debug: sto scrivendo nel file reg_users.txt\n");
-    fwrite(&cred, sizeof(cred), 1, fptr);
-    printf("Debug: ho scritto nel file reg_users.txt\n");
-    fclose(fptr);
-    printf("Debug: ho chiuso il file reg_users.txt\n");
+void registra_utente(struct credenziali user){
+    FILE *cr = fopen("./sources_s/reg_users.txt", "a");
+    fprintf(cr, "%s %s", user.username, user.password);
+    fclose(cr);
+    return;
 }
+
 
 //la funzione converte il comando server in un codice intero
 int codifica_comando_server(char *comando){
@@ -319,8 +332,6 @@ void signup_s(int sock){
     res = ACK;
     res_t = htonl(res);
 
-    printf("Debug: sto per inviare ACK dentro signup_s\n");
-
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     
     msg_len = (sizeof(cred));
@@ -328,10 +339,8 @@ void signup_s(int sock){
     recv(sock, (void*)&cred, msg_len, 0);
 
     
-    printf("prima dell'if\n");
     if(check_presenza_utente(cred.username) == true){
         //invio il segnale di errore "utente già registrato"
-        printf("Debug: dentro if\n");
         res = ALRDY_REG;
         res_t = htonl(res);
         fflush(stdin);
@@ -339,15 +348,12 @@ void signup_s(int sock){
         return;
     }
     fflush(stdout);
-    printf("Debug: prima di registra_utente\n");
     //scrivo le credenziali su file
     registra_utente(cred);
-    printf("ho registrato l'utente %s\n", cred.username);
     //invio ACK di conferma
     res = ACK;
     res_t = htonl(res);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
-    printf("ho inviato l'ACK\n");
     fflush(stdout);
     printf("UTENTE %s REGISTRATO AL SERVIZIO!\n", cred.username);
     return;
@@ -381,18 +387,17 @@ bool login_s(int sock, struct utenti_online **testa){
         //le credenziali non sono corrette
         res = IN_ERR;
         res_t = htonl(res);
-        printf("Debug: non ci sono credenziali\n");
         send(sock, (void*)&res_t, sizeof(uint32_t), 0);
         return false;
     }
+    printf("Debug: credenziali corrette\n");
     res = ACK;
     res_t = htonl(res);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
 
     inserisci_utente(testa, cred.username, sock, port);
-    inizializza_history(cred);
-    aggiorna_registro_utente(cred.username, port);
-    printf("Debug dopo aggiorna registro utente\n");
+    inizializza_history(cred.username, port);
+    //aggiorna_registro_utente(cred.username, port);
     return true;
 
    
@@ -471,7 +476,6 @@ void chat_s(int socket){
         send(socket, (void*)&res_t, sizeof(uint32_t), 0);
         //invio al client le informazioni per avviare la chat P2P
         port = get_port(destinatario);
-        printf("Debug: la porta del destinatario è %d\n", port);
         port_t = htonl(port);
         send(socket, (void*)&port_t, sizeof(uint32_t), 0);
         return;
@@ -493,36 +497,13 @@ void chat_s(int socket){
 //funzione usata dal server quando un client notifica la sua disconnessione
 //l'utente viene rimosso dalla lista degli utenti online
 //e viene aggiornato il file relativo al registro degli utenti
-void out_s(struct utenti_online **testa, char *username){
+/*void out_s(struct utenti_online **testa, char *username){
     struct utenti_online *tmp = *testa;
     struct utenti_online *prec = NULL;
     struct user_record *tmp_r = NULL;
     time_t curtime;
     FILE *fp = fopen("utenti_online.txt", "a");
-
     strcpy(tmp_r->Username, username);
-    
-
-
-    while(tmp != NULL){
-        if(strcmp(tmp->username, username) == 0){
-            //recupero timestamp di connessione
-            tmp_r->timestamp_in = ctime(&tmp->timestamp_in);
-            //recupero la porta sul quale il device era connesso
-            tmp_r->Port = tmp->port;
-            if(prec == NULL){
-                *testa = tmp->pointer;
-                free(tmp);
-                return;
-            }
-            prec->pointer = tmp->pointer;
-            free(tmp);
-            return;
-        }
-        prec = tmp;
-        tmp = tmp->pointer;
-    }
-
     //aggiorno timestamp di disconnessione
     tmp_r->timestamp_out = ctime(&curtime);
 
@@ -530,9 +511,31 @@ void out_s(struct utenti_online **testa, char *username){
     fprintf(fp, "%s %d %s %s", tmp_r->Username, tmp_r->Port, tmp_r->timestamp_in, tmp_r->timestamp_out);
 
     return;
+}*/
 
+//la funzione trova la entry relativa ad username nel file registro.txt, aggiorna
+//il timestamp di disconnessione e scrive su file
+void out_s(char *username){
+    struct user_record record;
+    time_t rawtime, timestamp;
+    FILE *fileptr = fopen("./sources_s/registro.txt", "ab+");
 
+    //trovo username nel file
+    while(fread(&record, sizeof(struct user_record), 1, fileptr) == 1){
+        if(strcmp(record.Username, username) == 0){
+            //aggiorno timestamp di disconnessione
+            time(&rawtime);
+            timestamp = rawtime;
+            record.timestamp_out = timestamp;
+            //scrivo su file
+            fwrite(&record, sizeof(struct user_record), 1, fileptr);
+            fclose(fileptr);
+            return;
+        }
+    }
 }
+
+
 
 
 /********************************************************************************************************/

@@ -104,7 +104,7 @@ int main(int argc, char* argv[]){
                             // il client ha chiuso il socket, quindi
                             // chiudo il socket connesso sul server
                             rimuovi_utente(&utenti_online, i);
-
+                            out_s(get_username(i));
                             close(listener);
 
                             // rimuovo il descrittore newfd da quelli da monitorare
@@ -150,7 +150,7 @@ int main(int argc, char* argv[]){
                             break;
 
                         case OUT_CODE:
-                            out_s(&utenti_online, get_username(i));
+                            //out_s(&utenti_online, get_username(i));
                             break;
 
                         default:

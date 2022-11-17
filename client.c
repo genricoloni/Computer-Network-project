@@ -178,12 +178,8 @@ int main(int argc, char* argv[]){
                             break;
 
                         case CHAT_CODE:
-                            //prelevo username dal buffer
-                            //sscanf(buffer, "%s %s", command, username);
-                            printf("Inizio chat con %s\n", username);
                             code = chat_init_c(code, username, server_com);
-                            printf("porta ricevuta: %d\n", code);
-
+                            //gestione struct e memoria
                             memset(&client_addr, 0, sizeof(client_addr));
                             client_addr.sin_family = AF_INET;
                             client_addr.sin_port = htons(code);
@@ -191,7 +187,6 @@ int main(int argc, char* argv[]){
                             cl_socket = socket(AF_INET, SOCK_STREAM, 0);
 
                             ret = connect(cl_socket, (struct sockaddr*)&client_addr, sizeof(client_addr));
-                            printf("connect: %d\n", ret);
                             break;
 
                         case SHARE_CODE:
@@ -202,7 +197,7 @@ int main(int argc, char* argv[]){
 
                         case OUT_CODE:
                             //il client notifica al server la disconnessione
-                            out_c(code, server_com);
+                            //out_c(code, server_com);
                             exit(0);
                             break;
 
