@@ -112,10 +112,11 @@ int main(int argc, char* argv[]){
         }
        
         switch (code){
-            case SIGNUP_CODE:            
+            case SIGNUP_CODE: 
+                printf("debug: dentro registrazione\n");          
                 reg = signup_c(code, credenziali, server_com);
                 su = reg;
-                system("clear");
+                //system("clear");
                 break;
 
             case IN_CODE:

@@ -319,17 +319,19 @@ void signup_s(int sock){
     res = ACK;
     res_t = htonl(res);
 
+    printf("Debug: sto per inviare ACK dentro signup_s\n");
+
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     
     msg_len = (sizeof(cred));
     //ricevo le credenziali
     recv(sock, (void*)&cred, msg_len, 0);
 
-    fflush(stdout);
     
-    
-    if(check_presenza_utente(cred.username) == false){
+    printf("prima dell'if\n");
+    if(check_presenza_utente(cred.username) == true){
         //invio il segnale di errore "utente già registrato"
+        printf("Debug: dentro if\n");
         res = ALRDY_REG;
         res_t = htonl(res);
         fflush(stdin);
@@ -337,6 +339,7 @@ void signup_s(int sock){
         return;
     }
     fflush(stdout);
+    printf("Debug: prima di registra_utente\n");
     //scrivo le credenziali su file
     registra_utente(cred);
     printf("ho registrato l'utente %s\n", cred.username);
@@ -600,6 +603,7 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
     ack = ntohl(code_t);
+    printf("Debug: ack = %d\n", ack);
     if(ack == ALRDY_REG )
         return true;
     
