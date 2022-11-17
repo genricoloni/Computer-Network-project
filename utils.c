@@ -246,6 +246,7 @@ void inizializza_history(char *Username, int port){
     //faccio la fseek
     fseek(fileptr, 0, SEEK_END);
     fprintf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
+    fprintf(fileptr, "\n");
     fclose(fileptr);
     return;
 }
