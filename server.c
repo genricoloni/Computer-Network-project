@@ -100,17 +100,19 @@ int main(int argc, char* argv[]){
                         uint32_t code_t;
                         ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);
                         if(ret == 0){
+                            
                             printf("dopo recv con ret == 0");
                             // il client ha chiuso il socket, quindi
                             // chiudo il socket connesso sul server
-                            rimuovi_utente(&utenti_online, i);
                             out_s(get_username(i));
-                            close(listener);
+                            close(i);
+                            rimuovi_utente(&utenti_online, i);
+
 
                             // rimuovo il descrittore newfd da quelli da monitorare
                             FD_CLR(listener, &master);
 
-                            printf("CHIUSURA client %d rilevata!\n", i);
+                            //printf("CHIUSURA client %d rilevata!\n", i);
                             
                             fflush(stdout);
                 

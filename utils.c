@@ -503,21 +503,35 @@ void chat_s(int socket){
 void out_s(char *username){
     struct user_record record;
     time_t rawtime, timestamp;
-    FILE *fileptr = fopen("./sources_s/registro.txt", "ab+");
+    char buffer[80];
+    FILE *fileptr = fopen("./sources_s/registro.txt", "wb+");
 
-    //trovo username nel file
-    while(fread(&record, sizeof(struct user_record), 1, fileptr) == 1){
+    printf("Debug prima della fgets\n");
+    printf("Debug: username = %s\n", username);
+
+    while(fgets(buffer, 80, fileptr) != NULL){
+        printf("Debug dentro la fgetsy\n");
+        sscanf(buffer, "%s %d %s %s", &record.Username, record.Port, &record.timestamp_in, &record.timestamp_out);
+        printf("Debug: username letto: %s\n", record.Username);
+        printf("Debug: devono essere uguali: %s %s\n", username, record.Username);
+        
         if(strcmp(record.Username, username) == 0){
-            //aggiorno timestamp di disconnessione
+            //trovato l'utente
+            printf("Debug: dentro if\n");
             time(&rawtime);
-            timestamp = rawtime;
-            record.timestamp_out = timestamp;
+            record.timestamp_out = ctime(&rawtime);
+            printf("Debug: username: %s\n", record.Username);
+            printf("Debug: porta: %d\n", record.Port);
+            printf("Debug: timestamp in: %s\n", record.timestamp_in);
+            printf("Debug: timestamp out: %s\n", record.timestamp_out);
             //scrivo su file
-            fwrite(&record, sizeof(struct user_record), 1, fileptr);
+            fprintf(fileptr, "%s %d %s %s\n", &record.Username, record.Port, &record.timestamp_in, &record.timestamp_out);
+            printf("Debug: scritto su file\n");
             fclose(fileptr);
             return;
         }
     }
+    printf("Debug: non trovato\n");
 }
 
 
