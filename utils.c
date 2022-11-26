@@ -527,14 +527,7 @@ void msg_s(int socket){
 
 
     printf("Debug: path: %s\n", path);
-    if(access(path, F_OK) == 0){
-        printf("Il file esiste\n");
-        append_msg(mittente, destinatario, buffer, true);
-    }
-    else{
-        printf("Il file non esiste\n");
-        append_msg(mittente, destinatario, buffer, false);
-    }
+    append_msg_s(mittente, destinatario, buffer);
     printf("RICEVUTO MESSAGGIO DA %s\n", mittente);
     printf("%s\n", buffer);
 
@@ -629,23 +622,66 @@ void print_chat(char *path){
 
 //funzione che aggiunge l'ultimo messaggio ad un file di chat
 //se il parametro bool è false, il file viene creato
-void append_msg_c(char *path, char *msg, bool bool){
+void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
     FILE *fp;
-    const char* folder;
-    strcpy(folder, "./server/");
-    printf("Prima della fopen\n");
-    if(bool == false)
-        fp = fopen(path, "w");
-    else
-        fp = fopen(path, "a");
-    fprintf(fp, "                   *%s", msg);
-    printf("Debug: messaggio scritto su file\n");
+    char folder[100], path[100], timestamp[100];
+    int count;
+    printf("Debug: append_msg_c\n");
+
+    //controlla che esista la cartella del destinatario
+    //altrimenti la crea
+    strcpy(folder, "./");
+    strcat(folder, OWN_USER);
+
+    //controllo se la cartella esiste
+    if(access(folder, F_OK) == 0){
+        printf("La cartella esiste\n");
+    }
+    else{
+        printf("La cartella non esiste\n");
+        mkdir(folder, 0777);
+        printf("Cartella creata\n");
+        //creo il file di chat
+    }
+    strcat(folder, "/chat/");
+
+    //controllo se la cartella esiste
+    if(access(folder, F_OK) == 0){
+        printf("La cartella esiste\n");
+    }
+    else{
+        printf("La cartella non esiste\n");
+        mkdir(folder, 0777);
+        printf("Cartella creata\n");
+        //creo il file di chat
+    }
+    strcpy(path, folder);
+    strcat(path, destinatario);
+    strcat(path, ".txt");
+    printf("Path: %s\n", path);
+
+    //controllo se il file esiste
+    if(access(folder, F_OK) != -1){
+        printf("Il file esiste\n");
+        fp = fopen(folder, "a");
+    }
+    else{
+        printf("Il file non esiste\n");
+        fp = fopen(folder, "w+");
+    }
+    printf("Debug prima della fprintf\n");
+    //aggiungo il messaggio al file
+    fprintf(fp, "%s", &msg);
+
+    printf("Debug dopo la fprintf\n");
     fclose(fp);
+    
+    
 }
 
 
 //funzione che gestisce la ricezione dei messaggi pendenti nel server
-void append_msg_s(char *mittente, char* destinatario, char *msg, bool bool){
+void append_msg_s(char *mittente, char* destinatario, char *msg){
     FILE *fp, *fp1;
     char* folder, *path, *timestamp;
     int count;
@@ -679,7 +715,7 @@ void append_msg_s(char *mittente, char* destinatario, char *msg, bool bool){
     }
 
     //scrivo il messaggio nel file
-    fprintf(fp, " ", msg);
+    fprintf(fp, " %s", msg);
     fclose(fp);
     
     //gestisco il file riepilogativo dei messaggi pendenti relativi al destinatario

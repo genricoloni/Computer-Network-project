@@ -13,7 +13,22 @@
         "cstdlib": "c",
         "cstring": "c",
         "ctime": "c",
-        "cwchar": "c"
+        "cwchar": "c",
+        "array": "c",
+        "*.tcc": "c",
+        "bitset": "c",
+        "deque": "c",
+        "string": "c",
+        "vector": "c",
+        "algorithm": "c",
+        "limits": "c",
+        "numeric": "c",
+        "streambuf": "c",
+        "__functional_03": "c",
+        "__functional_base": "c",
+        "__functional_base_03": "c",
+        "exception": "c",
+        "tuple": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }

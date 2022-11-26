@@ -176,15 +176,9 @@ int main(int argc, char* argv[]){
                         printf("Path del file: %s\n", path);
                         //chiamo una funzione che stampa il contenuto di un file
                         fgets(buffer, 1024 - 1, stdin);
-                        
-                        if(access(path, F_OK) == 0){
-                            printf("Il file esiste\n");
-                            append_msg_c(path, buffer, OWN_USER, true);
-                        }
-                        else{
-                            printf("Il file non esiste\n");
-                            append_msg_c(path, buffer, OWN_USER, false);
-                        }
+                        printf("Prima della append\n");
+                        append_msg_c( buffer, destinatari, OWN_USER);
+                        printf("Dopo la append\n");
                         send(server_com, &code_t, sizeof(uint32_t), 0);
                         send(server_com, &destinatari->username, sizeof(destinatari->username), 0);
                         send(server_com, &buffer, sizeof(buffer), 0);
@@ -211,14 +205,7 @@ int main(int argc, char* argv[]){
                             sprintf(path, "./%s/chat/%s.txt", OWN_USER, destinatari);
                             printf("path: %s\n", path);
                             printf("Destinatario: %s\n", destinatari);
-                            if(access(path, F_OK) == 0){
-                                printf("Il file esiste\n");
-                                append_msg_c(path, buffer, OWN_USER, true);
-                            }
-                            else{
-                                printf("Il file non esiste\n");
-                                append_msg_c(path, buffer,OWN_USER, false);
-                            }
+                            append_msg_c( buffer, destinatari, OWN_USER);
                             printf("Dopo append, prima di send\n");
                             send(tmp->socket , buffer, strlen(buffer), 0);
                             printf("Dopo send\n");
