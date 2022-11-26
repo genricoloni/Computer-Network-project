@@ -18,6 +18,7 @@
 #define CHAT_CODE       5
 #define SHARE_CODE      6
 #define OUT_CODE        7
+#define MSG_CODE        90
 
 #define HELP_CODE       11
 #define LIST_CODE       12
@@ -51,8 +52,8 @@ struct credenziali_t{
 struct user_record{
       char Username[USERN_CHAR];
       int Port;
-      char* timestamp_in;
-      char* timestamp_out;
+      char timestamp_in[25];
+      char timestamp_out[25];
 };
 
 //la struttura viene aggiornata ogni qualvolta viene inviato ad un utente attualmente offline

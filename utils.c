@@ -144,7 +144,7 @@ void inserisci_destinatario( char *Username, int socket)
 /********************************************************************************************************/
 
 // aggiorna i valori della history quando il client fa login
-void aggiorna_registro_utente(char *Username, int port){
+/*void aggiorna_registro_utente(char *Username, int port){
       struct user_record record;
       time_t rawtime;
       FILE *fileptr = fopen("./sources_s/registro.txt", "rb+");
@@ -167,7 +167,7 @@ void aggiorna_registro_utente(char *Username, int port){
 }
       fclose(fileptr);
       return;
-}
+}*/
 
 
 //la funzione controlla che l'username appartenga ad un utente registrato
@@ -233,16 +233,19 @@ bool check_login_utente(struct credenziali cred){
 //aggiungo una nuova entry al registro degli utenti 
 void inizializza_history(char *Username, int port){
     struct user_record record;
-    time_t rawtime, timestamp;
+    time_t rawtime, timestamp, tmp, raw_tmp;
     FILE *fileptr = fopen("./sources_s/registro.txt", "ab+");
 
     //aggiungo un record al registro
     timestamp = time(&rawtime);
+    tmp = time(&raw_tmp);
     strcpy(record.Username, Username);
-    record.timestamp_in = ctime(&timestamp);
-    record.timestamp_out = '\0';
+    //record.timestamp_in = ctime(&timestamp);
+    //record.timestamp_out = ctime(&tmp);
+    strcpy(record.timestamp_in, ctime(&timestamp));
+    strcat(record.timestamp_in, "\0");
+    strcpy(record.timestamp_out, "-\0");
     record.Port = port;
-    fflush(stdout);
     //faccio la fseek
     fseek(fileptr, 0, SEEK_END);
     fprintf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
@@ -492,47 +495,104 @@ void chat_s(int socket){
     res = ERR_CODE;
     res_t = htonl(res);
     send(socket, (void*)&res_t, sizeof(uint32_t), 0);
-    //memorizzo il messaggio come messaggio pendente
-    
-    
-        
+    //memorizzo il messaggio come messaggio pendente 
 }
+
+//funzione che si occupa di gestire i messaggi pendenti in arrivo per un utente
+void msg_s(int socket){
+    int res;
+    uint32_t msg_len, res_t;
+    char destinatario[USERN_CHAR];
+    char mittente[USERN_CHAR];
+    char buffer[BUFSIZE];
+    char path[100];
+
+    //destinatario del messaggio
+    recv(socket, (void*)&destinatario, sizeof(destinatario), 0);
+
+    strcpy(mittente, get_username(socket));
+
+    printf("Debug prima di sprintf\n");
+    strcat(destinatario, "\0");
+    strcat(mittente, "\0");
+    //sprintf(path, "./server/%s/chat/%s.txt", *destinatario, *mittente);
+    strcat(path, "./server/");
+    strcat(path, destinatario);
+    strcat(path, "/chat/");
+    strcat(path, mittente);
+    strcat(path, ".txt");
+
+    //ricevo il messaggio
+    recv(socket, (void*)&buffer, sizeof(buffer), 0);
+
+
+    printf("Debug: path: %s\n", path);
+    if(access(path, F_OK) == 0){
+        printf("Il file esiste\n");
+        append_msg(mittente, destinatario, buffer, true);
+    }
+    else{
+        printf("Il file non esiste\n");
+        append_msg(mittente, destinatario, buffer, false);
+    }
+    printf("RICEVUTO MESSAGGIO DA %s\n", mittente);
+    printf("%s\n", buffer);
+
+
+}
+
+
+
+
 
 //la funzione trova la entry relativa ad username nel file registro.txt, aggiorna
 //il timestamp di disconnessione e scrive su file
 void out_s(char *username){
     struct user_record record;
     time_t rawtime, timestamp;
-    char buffer[80];
-    FILE *fileptr = fopen("./sources_s/registro.txt", "wb+");
+    char buffer[100], tmp[20],tmp1[20], tmp2[20], tmp3[20], tmp4[20], tmp5[20];
+    FILE *fileptr = fopen("./sources_s/registro.txt", "r+");
 
     printf("Debug prima della fgets\n");
     printf("Debug: username = %s\n", username);
 
+    //cerco nel file registro.txt l'entry relativa a username
     while(fgets(buffer, 80, fileptr) != NULL){
-        printf("Debug dentro la fgetsy\n");
-        sscanf(buffer, "%s %d %s %s", &record.Username, record.Port, &record.timestamp_in, &record.timestamp_out);
-        printf("Debug: username letto: %s\n", record.Username);
-        printf("Debug: devono essere uguali: %s %s\n", username, record.Username);
-        
+        printf("Debug: buffer = %s\n", buffer);
+        sscanf(buffer, "%s %s %s %s %s %s %s %s %d", record.Username, &tmp1, &tmp2, &tmp3, &tmp4, &tmp5, &record.timestamp_out, tmp, &record.Port);
+        strcpy(record.timestamp_in, tmp1);
+        strcat(record.timestamp_in, " ");
+        strcat(record.timestamp_in, tmp2);
+        strcat(record.timestamp_in, " ");
+        strcat(record.timestamp_in, tmp3);
+        strcat(record.timestamp_in, " ");
+        strcat(record.timestamp_in, tmp4);
+        strcat(record.timestamp_in, " ");
+        strcat(record.timestamp_in, tmp5);
+
+        printf("Debug: %s\n", tmp);
+
         if(strcmp(record.Username, username) == 0){
-            //trovato l'utente
-            printf("Debug: dentro if\n");
+            //trovata l'entry relativa a username
+            printf("Debug: trovata entry relativa a %s\n", username);
+            //aggiorno il timestamp di disconnessione
             time(&rawtime);
-            record.timestamp_out = ctime(&rawtime);
-            printf("Debug: username: %s\n", record.Username);
-            printf("Debug: porta: %d\n", record.Port);
-            printf("Debug: timestamp in: %s\n", record.timestamp_in);
-            printf("Debug: timestamp out: %s\n", record.timestamp_out);
-            //scrivo su file
-            fprintf(fileptr, "%s %d %s %s\n", &record.Username, record.Port, &record.timestamp_in, &record.timestamp_out);
-            printf("Debug: scritto su file\n");
+            //record.timestamp_out = rawtime;
+            strcpy(record.timestamp_out, ctime(&rawtime));
+            //sovrascrivo l'entry nel file registro.txt
+            record.Port = get_port(username);
+            printf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
+            strcpy(buffer, "\0");
+            fputs(buffer, fileptr);
+            //fseek(fileptr, -strlen(buffer), SEEK_CUR);
+            fprintf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
+            fprintf(fileptr, "\n");
+            //cancello dal file registro.txt l'entry relativa a username
             fclose(fileptr);
             return;
         }
-    }
     printf("Debug: non trovato\n");
-}
+}}
 
 
 
@@ -559,7 +619,7 @@ void print_chat(char *path){
     FILE *fp;
     char c;
 
-    fp = fopen(path, "r");
+    fp = fopen(path, "w+");
 
     while((c = fgetc(fp)) != EOF)
         printf("%c", c);
@@ -567,6 +627,89 @@ void print_chat(char *path){
     fclose(fp);
 }
 
+//funzione che aggiunge l'ultimo messaggio ad un file di chat
+//se il parametro bool è false, il file viene creato
+void append_msg_c(char *path, char *msg, bool bool){
+    FILE *fp;
+    const char* folder;
+    strcpy(folder, "./server/");
+    printf("Prima della fopen\n");
+    if(bool == false)
+        fp = fopen(path, "w");
+    else
+        fp = fopen(path, "a");
+    fprintf(fp, "                   *%s", msg);
+    printf("Debug: messaggio scritto su file\n");
+    fclose(fp);
+}
+
+
+//funzione che gestisce la ricezione dei messaggi pendenti nel server
+void append_msg_s(char *mittente, char* destinatario, char *msg, bool bool){
+    FILE *fp, *fp1;
+    char* folder, *path, *timestamp;
+    int count;
+    time_t rawtime;
+
+    //controlla che esista la cartella del destinatario
+    //altrimenti la crea
+    strcpy(folder, "./server/");
+    strcat(folder, destinatario);
+    strcat(folder, "/chat/");
+    //controllo se la cartella esiste
+    if(access(folder, F_OK) == 0){
+        printf("La cartella esiste\n");
+    }
+    else{
+        printf("La cartella non esiste\n");
+        mkdir(folder, 0777);
+        //creo il file di chat
+    }
+    strcpy(path, folder);
+    strcat(path, mittente);
+    strcat(path, ".txt");
+    //controllo se il file esiste
+    if(access(folder, F_OK) == 0){
+        printf("Il file esiste\n");
+        fp = fopen(folder, "a");
+    }
+    else{
+        printf("Il file non esiste\n");
+        fp = fopen(folder, "w");
+    }
+
+    //scrivo il messaggio nel file
+    fprintf(fp, " ", msg);
+    fclose(fp);
+    
+    //gestisco il file riepilogativo dei messaggi pendenti relativi al destinatario
+    strcat(path, "res.txt");
+    if(access(path, F_OK) == 0){
+        printf("Il file esiste\n");
+        fp1 = fopen(path, "a+");
+        //prelevo la prima parola del file
+        fscanf(fp1, "%d", &count);
+        //incremento il contatore
+        count++;
+        // prelevo il resto del file che è il timestamp dell'ultimo messaggio
+        fscanf(fp1, "%s", timestamp);
+
+    }
+    else{
+        printf("Il file non esiste\n");
+        fp1 = fopen(path, "w");
+        count = 1;
+    }
+    //recupero il timestamp attuale
+    time(&rawtime);
+    timestamp = ctime(&rawtime);
+
+    fprintf(fp1, "%d \n %s", count, timestamp);
+
+    fclose(fp1);
+
+
+}
 
 
 
@@ -782,7 +925,6 @@ int chat_init_c(int code, char* username, int server_sock){
         perror("Errore in fase di comunicazione col server\n");
         return -1;
     }
-    printf("username e' %s\n", username);
     
     //invio il nome dell'utente con cui si vuole chattare
     strcpy(cred.username, username);
@@ -793,37 +935,11 @@ int chat_init_c(int code, char* username, int server_sock){
     recv(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
     ack = ntohl(code_t);
 
-    if(ack != ACK){
-        printf("L'utente non esiste\n");
+    if(ack != ACK)
         return -1;
-    }
-    printf("prima della recv\n");
+    
     //ricevo il mio username
     recv(server_sock, (void*)&user, sizeof(&user), 0);
-
-    printf("Dopo recv\n");
-    //verifico se il file di chat con username esiste già;
-    //se esiste già, stampo la cronologia della chat
-
-    /*path = strcat(path, user);
-    path = strcat(path, "/chat/");
-    path = strcat(path, username);*/
-    //memset(path, 0, sizeof(path));
-    printf("dopo memset\n");
-    sprintf(path, "./%s/chat/%s", user, username);
-    printf("Dopo sprintf path vale %s\n", path);
-    if(access(path, F_OK) == 0){
-        exist = true;
-        //aggiorno, se non è già stato fatto, la cronologia della chat
-        //chiamando la show
-        //il file esiste già, dunque
-        //stampo la cronologia della chat
-        print_chat(path);
-    }
-    printf("exist vale %d\n", exist);
-
-    //parametro da mettere nella funzione di chat, indica se serve o meno creare un file di chat
-    
 
 
     //il server mi informa se l'utente è online tramite is_on
@@ -832,10 +948,8 @@ int chat_init_c(int code, char* username, int server_sock){
 
 
     if(ack != ACK){
-        //il client invierà i messaggi al server, che li memorizza in attesa che l'utente si connetta
-        printf("L'utente %s non è online, i messaggi saranno inviati al server e verranno consegnati quando %s si connetterà\n", username, username);
-        
-        inserisci_destinatario("server", server_sock);
+        //il client invierà i messaggi al server, che li memorizza in attesa che l'utente si connetta        
+        inserisci_destinatario(username, server_sock);
         return 0;
         //chiamo una sottofunzione che si occupa della chat vera e propria
 
@@ -846,34 +960,13 @@ int chat_init_c(int code, char* username, int server_sock){
         uint32_t port_t;
 
         //il client invierà i messaggi direttamente all'utente
-        printf("%s è online, i messaggi gli saranno inviati direttamente\n", username);
-
         
         //recupero la porta dell'utente 
         recv(server_sock, (void*)&port_t, sizeof(uint32_t), 0);
         port = ntohl(port_t);
-       
-        printf("porta ricevuta %d\n", port);
-        
-        //pulizia della memoria e gestione indirizzi del destinatario
-        //memset(&cl_addr, 0, sizeof(cl_addr));
-        /*cl_addr->sin_family = AF_INET;
-		cl_addr->sin_port = htonl(port);
-		inet_pton(AF_INET, "127.0.0.1", &cl_addr->sin_addr);
-		dest_sock = socket(AF_INET, SOCK_STREAM, 0);
-        */
 
-        printf("dest_sock vale %d\n", dest_sock);
-
-        printf("prima del connect\n");
-        //connessione al destinatario
-        //dest_sock = connect(dest_sock, (struct sockaddr*)&cl_addr, sizeof(cl_addr));
-        printf("dopo il connec: la connect vale%d\n", dest_sock);
         //aggiungo l'utente alla lista dei destinatari
         inserisci_destinatario(username, dest_sock);
-        printf("dopo inserisci_destinatario\n");
-        //chiamo una sottofunzione che si occupa della chat vera e propria
-        //chat_c(dest_sock);
         return port;
     }
     
@@ -884,23 +977,8 @@ int chat_init_c(int code, char* username, int server_sock){
 
 //funzione che notifica al server e ai destinatari che il client si sta disconnettendo
 void out_c(int code, int server_sock){
-    uint32_t code_t;
-    int ack;
     struct destinatari* tmp;
 
-    code_t = htonl(code);
-
-    //invio codice al server
-    send(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
-
-    //aspetto conferma
-    recv(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
-    ack = ntohl(code_t);
-
-    if(ack != ACK){
-        perror("Errore in fase di comunicazione col server\n");
-        return;
-    }
     //chiudo la socket con il server
     close(server_sock);
 

@@ -1,6 +1,7 @@
 #include "utils.c"
 
 int DEVICE_PORT;
+char OWN_USER[USERN_CHAR];
 
 int main(int argc, char* argv[]){
     
@@ -10,10 +11,14 @@ int main(int argc, char* argv[]){
     int code, cl_socket;
     uint32_t server_com, cl_listener, ret, fdmax, i;
     uint32_t addrlen, newfd;
+    char path[100];
+
+    FILE *fp;
 
     struct credenziali credenziali;
 
     bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false, in = false, login = true;
+    bool client_offline = false, in_chat = false;;
 
     // strutture per indirizzi
     struct sockaddr_in server_addr, client_addr, cl_listener_addr, gp_addr;
@@ -113,7 +118,7 @@ int main(int argc, char* argv[]){
        
         switch (code){
             case SIGNUP_CODE: 
-                printf("debug: dentro registrazione\n");          
+                printf("debug: dentro registrazione\n");           
                 reg = signup_c(code, credenziali, server_com);
                 su = reg;
                 //system("clear");
@@ -130,8 +135,10 @@ int main(int argc, char* argv[]){
                 system("clear");
                 break;
     }   
-    if(in == true)
-        break;   
+    if(in == true){
+        strcpy(OWN_USER, credenziali.username);
+        break;  
+    } 
     }
 
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
@@ -145,6 +152,9 @@ int main(int argc, char* argv[]){
 
     fflush(stdin);
 
+    code = -4;
+    client_offline = true;
+
     while(1){
         readfds = master;
         select(fdmax + 1, &readfds, NULL, NULL, NULL);
@@ -152,8 +162,74 @@ int main(int argc, char* argv[]){
         for(i = 0; i <= fdmax; i++){
 
             if(FD_ISSET(i, &readfds)){
+                        fflush(stdin);
 
-                if ( i == STDIN){
+                if(i == STDIN){
+
+                    if(client_offline == false && code == 0 && in_chat == true){
+                        //devo inviare il messaggio al server
+                        printf("Debug: invio messaggio al server\n");
+                        fflush(stdin);
+                        uint32_t code_t = htonl(MSG_CODE);
+                        
+
+                        printf("Path del file: %s\n", path);
+                        //chiamo una funzione che stampa il contenuto di un file
+                        fgets(buffer, 1024 - 1, stdin);
+                        
+                        if(access(path, F_OK) == 0){
+                            printf("Il file esiste\n");
+                            append_msg_c(path, buffer, OWN_USER, true);
+                        }
+                        else{
+                            printf("Il file non esiste\n");
+                            append_msg_c(path, buffer, OWN_USER, false);
+                        }
+                        send(server_com, &code_t, sizeof(uint32_t), 0);
+                        send(server_com, &destinatari->username, sizeof(destinatari->username), 0);
+                        send(server_com, &buffer, sizeof(buffer), 0);
+                        //system("clear");
+                        print_chat(path);
+                        
+                        
+
+                        //printf("CHAT CON %s\n", destinatari);
+                        fflush(stdin);
+                        break;
+                    }
+                    if(client_offline == true && code > 0 && in_chat == true){
+                        struct destinatari *tmp = destinatari;
+                        printf("Debug: invio messaggio al client\n");
+
+                        //devo inviare il messaggio al client
+                        fgets(buffer, 1024 - 1, stdin);
+                        
+                        //invio il messaggio a tutti i destinatari
+                        printf("Debug: invio messaggio a tutti i destinatari\n");
+                        while(tmp != NULL){
+                            //printf("debug: invio messaggio a %s\n", destinatari->username);
+                            sprintf(path, "./%s/chat/%s.txt", OWN_USER, destinatari);
+                            printf("path: %s\n", path);
+                            printf("Destinatario: %s\n", destinatari);
+                            if(access(path, F_OK) == 0){
+                                printf("Il file esiste\n");
+                                append_msg_c(path, buffer, OWN_USER, true);
+                            }
+                            else{
+                                printf("Il file non esiste\n");
+                                append_msg_c(path, buffer,OWN_USER, false);
+                            }
+                            printf("Dopo append, prima di send\n");
+                            send(tmp->socket , buffer, strlen(buffer), 0);
+                            printf("Dopo send\n");
+                            // scorro la lista dei destinatari
+                            tmp = tmp->next;                        }
+                        break;
+
+                    }
+
+                        fflush(stdin);
+
                     //è un comando dallo stdin
                     memset(&buffer, 0, sizeof(buffer));
                     memset(&command, 0, sizeof(command));
@@ -180,13 +256,38 @@ int main(int argc, char* argv[]){
                         case CHAT_CODE:
                             code = chat_init_c(code, username, server_com);
                             //gestione struct e memoria
+                        fflush(stdin);
+
+                            printf("debug: porta = %d\n", code);
+                            if (code == -1){
+                                client_offline = false;
+                                printf("L'utente non esiste\n");
+                                break;
+                            }
+                            if (code == 0){
+                                client_offline = false;
+                                //system("clear");
+                                printf("CHAT VIA SERVER %s\n", destinatari);
+                                //sprintf(path, "./%s/chat/%s", OWN_USER, destinatari->username);
+                                sprintf(path, "./%s/chat/%s.txt", OWN_USER, destinatari->username);
+
+                                printf("path: %s\n", path);
+                                //print_chat(path);
+                                //printf("Dopo print_chat\n");
+                                in_chat = true;
+                                break;
+                            }
+                            printf("CHAT CON %s\n", destinatari);
                             memset(&client_addr, 0, sizeof(client_addr));
                             client_addr.sin_family = AF_INET;
                             client_addr.sin_port = htons(code);
                             inet_pton(AF_INET, "127.0.0.1", &client_addr.sin_addr);
                             cl_socket = socket(AF_INET, SOCK_STREAM, 0);
 
+                            sprintf(path, "./%s/chat/%s.txt", OWN_USER, destinatari->username);
+
                             ret = connect(cl_socket, (struct sockaddr*)&client_addr, sizeof(client_addr));
+                            in_chat = true;
                             break;
 
                         case SHARE_CODE:
@@ -213,7 +314,6 @@ int main(int argc, char* argv[]){
                 } else{
                     if(i == cl_listener){
                         //è una nuova connessione
-                                               //nuova connessione
                         addrlen = sizeof(gp_addr);
                         ret = accept(i, (struct sockaddr*)&gp_addr, (socklen_t*)&addrlen);
 
@@ -236,6 +336,7 @@ int main(int argc, char* argv[]){
                             close(i);
                             FD_CLR(i, &master);
                         } else{
+                            printf("è un messaggio da un client già connesso\n");
                             /// è un messaggio ricevuto
                         }
                     }
