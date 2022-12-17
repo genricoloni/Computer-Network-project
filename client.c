@@ -18,7 +18,7 @@ int main(int argc, char* argv[]){
     struct credenziali credenziali;
 
     bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false, in = false, login = true;
-    bool client_offline = false, in_chat = false;;
+    bool client_offline = false, in_chat = false, in_group = false;
 
     // strutture per indirizzi
     struct sockaddr_in server_addr, client_addr, cl_listener_addr, gp_addr;
@@ -193,6 +193,7 @@ int main(int argc, char* argv[]){
                     }
                     if(client_offline == true && code > 0 && in_chat == true){
                         struct destinatari *tmp = destinatari;
+                        int a;
                         printf("Debug: invio messaggio al client\n");
 
                         //devo inviare il messaggio al client
@@ -201,14 +202,18 @@ int main(int argc, char* argv[]){
                         //invio il messaggio a tutti i destinatari
                         printf("Debug: invio messaggio a tutti i destinatari\n");
                         while(tmp != NULL){
+                            struct sent_message *msg = malloc(sizeof(struct sent_message));
+                            strcpy(msg->utente, OWN_USER);
                             //printf("debug: invio messaggio a %s\n", destinatari->username);
-                            sprintf(path, "./%s/chat/%s.txt", OWN_USER, destinatari);
+                            sprintf(path, "./%s/chat/%s.txt", OWN_USER, tmp->username);
                             printf("path: %s\n", path);
-                            printf("Destinatario: %s\n", destinatari);
-                            append_msg_c( buffer, destinatari, OWN_USER);
+                            printf("Destinatario: %s\n", tmp->username);
+                            append_msg_c( buffer, tmp->username, OWN_USER);
                             printf("Dopo append, prima di send\n");
-                            send(tmp->socket , buffer, strlen(buffer), 0);
-                            printf("Dopo send\n");
+                            printf("socket: %d\n", tmp->socket);
+                            a = send(tmp->socket , msg, sizeof(msg), 0);
+                            printf("Dopo send che vale :%d\n", a);
+                            free(msg);
                             // scorro la lista dei destinatari
                             tmp = tmp->next;                        }
                         break;
@@ -264,12 +269,14 @@ int main(int argc, char* argv[]){
                                 in_chat = true;
                                 break;
                             }
-                            printf("CHAT CON %s\n", destinatari);
+                            printf("CHAT CON %s\n", username);
                             memset(&client_addr, 0, sizeof(client_addr));
                             client_addr.sin_family = AF_INET;
                             client_addr.sin_port = htons(code);
                             inet_pton(AF_INET, "127.0.0.1", &client_addr.sin_addr);
                             cl_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+                            inserisci_destinatario(username, cl_socket);
 
                             sprintf(path, "./%s/chat/%s.txt", OWN_USER, destinatari->username);
 
@@ -324,7 +331,19 @@ int main(int argc, char* argv[]){
                             FD_CLR(i, &master);
                         } else{
                             printf("è un messaggio da un client già connesso\n");
-                            /// è un messaggio ricevuto
+                            //funzione che scrive nel file di chat il messaggio ricevuto
+                            if (in_group == false){
+                                struct sent_message *msg = malloc(sizeof(struct sent_message));
+                                //ricevo messaggio da un client
+                                recv(i, msg, sizeof(struct sent_message), 0);
+                                printf("debug: messaggio ricevuto da %s\n", msg->utente);
+
+
+                                append_msg_rcv(OWN_USER, msg);
+                            }
+                            else{
+                                printf("Debug: chat di gruppo\n");
+                            }
                         }
                     }
                 }

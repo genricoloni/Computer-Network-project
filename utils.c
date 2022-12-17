@@ -512,7 +512,6 @@ void msg_s(int socket){
 
     strcpy(mittente, get_username(socket));
 
-    printf("Debug prima di sprintf\n");
     strcat(destinatario, "\0");
     strcat(mittente, "\0");
     //sprintf(path, "./server/%s/chat/%s.txt", *destinatario, *mittente);
@@ -527,6 +526,7 @@ void msg_s(int socket){
 
 
     printf("Debug: path: %s\n", path);
+    printf("Prima di append\n");
     append_msg_s(mittente, destinatario, buffer);
     printf("RICEVUTO MESSAGGIO DA %s\n", mittente);
     printf("%s\n", buffer);
@@ -594,14 +594,31 @@ void out_s(char *username){
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY DEL CLIENT>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /********************************************************************************************************/
 
-//la funzione si occupa di gestire la chat vera e propria:
-//deve poter inviare più messaggi, ricevere più messaggi e poter terminare la chat;
-//inoltre deve poter ricevere messaggi anche quando non è in attesa di un input da tastiera.
-//per questo motivo è stata utilizzata la select:
-//la select permette di gestire più socket contemporaneamente
-//e di poter ricevere messaggi anche quando non si è in attesa di un input da tastiera
-void chat_c(int socket){
+//funzione che scrive nel file di chat il messaggio ricevuto
+void append_msg_rcv(char *destinatario, struct sent_message *msg){
+    char path[100];
+    char* rcv = 'R';
+    char mitt[USERN_CHAR];
+    FILE *fileptr;
 
+    printf("Debug prima di strcpy\n");
+
+    strcpy(mitt, msg->utente);
+    printf("Debug: mitt = %s\n", mitt);
+
+    strcat(path, "./client/");
+    strcat(path, destinatario);
+    strcat(path, "/chat/");
+    strcat(path, mitt);
+    strcat(path, ".txt");
+
+    printf("Debug prima di strcat\n");
+    strcat(rcv, msg->messaggio);
+    
+
+    fileptr = fopen(path, "a");
+    fprintf(fileptr, "%s\n", rcv);
+    fclose(fileptr);
 }
 
 
@@ -661,17 +678,17 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
     printf("Path: %s\n", path);
 
     //controllo se il file esiste
-    if(access(folder, F_OK) != -1){
+    if(access(path, F_OK) != -1){
         printf("Il file esiste\n");
-        fp = fopen(folder, "a");
+        fp = fopen(path, "a");
     }
     else{
         printf("Il file non esiste\n");
-        fp = fopen(folder, "w+");
+        fp = fopen(path, "w");
     }
     printf("Debug prima della fprintf\n");
-    //aggiungo il messaggio al file
-    fprintf(fp, "%s", &msg);
+    //aggiungo il messaggio alla fine del file
+    fprintf(fp, "%s", msg);
 
     printf("Debug dopo la fprintf\n");
     fclose(fp);
@@ -683,53 +700,68 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
 //funzione che gestisce la ricezione dei messaggi pendenti nel server
 void append_msg_s(char *mittente, char* destinatario, char *msg){
     FILE *fp, *fp1;
-    char* folder, *path, *timestamp;
+    char folder[100], path[100], timestamp[100];
     int count;
     time_t rawtime;
 
     //controlla che esista la cartella del destinatario
     //altrimenti la crea
-    strcpy(folder, "./server/");
-    strcat(folder, destinatario);
-    strcat(folder, "/chat/");
-    //controllo se la cartella esiste
+    printf("Debug: append_msg_s\n");
+    strcpy(&folder, "./server");
+    printf("Debug: folder = %s\n", folder);
     if(access(folder, F_OK) == 0){
-        printf("La cartella esiste\n");
+        printf("La cartella %s esiste\n", folder);
     }
     else{
-        printf("La cartella non esiste\n");
+        printf("La cartella %s non esiste\n", folder);
         mkdir(folder, 0777);
         //creo il file di chat
     }
+    strcat(folder, "/");
+    strcat(folder, destinatario);
+    strcat(folder, "/chat");
+    if(access(folder, F_OK) == 0){
+        printf("La cartella %s esiste\n", folder);
+    }
+    else{
+        printf("La cartella %s non esiste\n", folder);
+        mkdir(folder, 0777);
+    }
+    strcat(folder, "/");
     strcpy(path, folder);
     strcat(path, mittente);
     strcat(path, ".txt");
     //controllo se il file esiste
-    if(access(folder, F_OK) == 0){
-        printf("Il file esiste\n");
-        fp = fopen(folder, "a");
+    if(access(path, F_OK) == 0){
+        printf("Il file %s esiste\n", path);
+        fp = fopen(path, "a");
     }
     else{
-        printf("Il file non esiste\n");
-        fp = fopen(folder, "w");
+        printf("Il file %s non esiste\n", path);
+        fp = fopen(path, "w");
     }
 
     //scrivo il messaggio nel file
+    printf("Debug: scrivo %s nel file %s\n", msg, path);
     fprintf(fp, " %s", msg);
     fclose(fp);
     
     //gestisco il file riepilogativo dei messaggi pendenti relativi al destinatario
-    strcat(path, "res.txt");
-    if(access(path, F_OK) == 0){
+
+    strcat(folder, "pendenti.txt");
+    if(access(folder, F_OK) == 0){
         printf("Il file esiste\n");
-        fp1 = fopen(path, "a+");
+        fp1 = fopen(folder, "r+");
         //prelevo la prima parola del file
         fscanf(fp1, "%d", &count);
         //incremento il contatore
         count++;
-        // prelevo il resto del file che è il timestamp dell'ultimo messaggio
-        fscanf(fp1, "%s", timestamp);
-
+        //cancello il file dalla cartella
+        fclose(fp1);
+        remove(folder);
+        //creo il file con il nuovo timestamp
+        fp1 = fopen(folder, "w");
+        
     }
     else{
         printf("Il file non esiste\n");
@@ -738,7 +770,7 @@ void append_msg_s(char *mittente, char* destinatario, char *msg){
     }
     //recupero il timestamp attuale
     time(&rawtime);
-    timestamp = ctime(&rawtime);
+    strcpy(timestamp, ctime(&rawtime));
 
     fprintf(fp1, "%d \n %s", count, timestamp);
 
@@ -1002,7 +1034,7 @@ int chat_init_c(int code, char* username, int server_sock){
         port = ntohl(port_t);
 
         //aggiungo l'utente alla lista dei destinatari
-        inserisci_destinatario(username, dest_sock);
+        printf("chat con %s e socket %d\n", username, dest_sock);
         return port;
     }
     
