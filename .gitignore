@@ -3,10 +3,12 @@
 /server.o
 reg_users.txt
 registro.txt
-./enrico/
 server copy.c
 /marco
 /enrico
 sources_s/marco
 sources_s/
+enrico/
+marco/
+
 
