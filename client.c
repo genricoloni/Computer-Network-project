@@ -166,17 +166,13 @@ int main(int argc, char* argv[]){
 
                     if(client_offline == false && code == 0 && in_chat == true){
                         //devo inviare il messaggio al server
-                        printf("Debug: invio messaggio al server\n");
                         fflush(stdin);
                         uint32_t code_t = htonl(MSG_CODE);
                         
 
-                        printf("Path del file: %s\n", path);
                         //chiamo una funzione che stampa il contenuto di un file
                         fgets(buffer, 1024 - 1, stdin);
-                        printf("Prima della append\n");
                         append_msg_c( buffer, destinatari->username, OWN_USER);
-                        printf("Dopo la append\n");
                         send(server_com, &code_t, sizeof(uint32_t), 0);
 
 
@@ -184,7 +180,7 @@ int main(int argc, char* argv[]){
                         send(server_com, &destinatari->username, sizeof(destinatari->username), 0);
                         send(server_com, &buffer, sizeof(buffer), 0);
                         //system("clear");
-                        print_chat(path);
+                        //print_chat(path);
                         
                         
 
@@ -195,16 +191,13 @@ int main(int argc, char* argv[]){
                     if(client_offline == true && code > 0 && in_chat == true){
                         struct destinatari *tmp = destinatari;
                         int a;
-                        printf("Debug: invio messaggio al client\n");
 
                         //devo inviare il messaggio al client
                         fgets(buffer, 1024 - 1, stdin);
                         
                         //invio il messaggio a tutti i destinatari
-                        printf("Debug: invio messaggio a tutti i destinatari\n");
                         while(tmp != NULL){
                             struct sent_message *msg = malloc(sizeof(struct sent_message));
-                            int msg_len = sizeof(struct sent_message);
                             int ack;
                             uint32_t code_t = htonl(MSG_CODE);
                             strcpy(msg->utente, OWN_USER);
@@ -212,23 +205,30 @@ int main(int argc, char* argv[]){
                             //printf("debug: invio messaggio a %s\n", destinatari->username);
                             sprintf(path, "./%s/chat/%s.txt", OWN_USER, tmp->username);
                             append_msg_c( buffer, tmp->username, OWN_USER);
-                            printf("Debug: invio del messaggio %s\n", buffer);
                             //invio codice
                             a = send(tmp->socket , &code_t, sizeof(uint32_t), 0);
-                            printf("Dopo send codice che vale :%d\n", a);
+
+                            if (a < 0){
+                                printf("Client disconnesso: rinviare il messaggio\n");
+                                client_offline = false;
+                                if (in_group == false){
+                                    //non sono in una chat di gruppo
+                                    //rimuovo il destinatario dalla lista
+                                    //e aggiungo il server alla lista
+                                    rimuovi_destinatario(tmp->username);
+                                    inserisci_destinatario("server", server_com);
+
+                                }
+                            }
 
                             a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
-                            printf("Dopo recv ack che vale :%d\n", a);
                             
                             a = send(tmp->socket , OWN_USER, USERN_CHAR, 0);
-                            printf("Dopo send username che vale :%d\n", a);
                             //ricevo ack
 
                             a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
-                            printf("Dopo recv ack che vale :%d\n", a);                            
 
                             a = send(tmp->socket , buffer, BUFSIZE, 0);
-                            printf("Dopo send messaggio che vale :%d\n", a);
                             free(msg);
                             // scorro la lista dei destinatari
                             tmp = tmp->next;                        }
@@ -274,10 +274,14 @@ int main(int argc, char* argv[]){
                                 //sprintf(path, "./%s/chat/%s", OWN_USER, destinatari->username);
                                 sprintf(path, "./%s/chat/%s.txt", OWN_USER, destinatari->username);
 
-                                printf("path: %s\n", path);
                                 //print_chat(path);
                                 //printf("Dopo print_chat\n");
                                 in_chat = true;
+                                system("clear");
+                                printf("path: %s\n", path);
+
+                                print_chat(path);
+
                                 break;
                             }
                             printf("CHAT CON %s\n", username);
@@ -293,6 +297,11 @@ int main(int argc, char* argv[]){
 
                             ret = connect(cl_socket, (struct sockaddr*)&client_addr, sizeof(client_addr));
                             in_chat = true;
+
+                            system("clear");
+                            printf("path: %s\n", path);
+
+                            print_chat(path);
                             break;
 
                         case SHARE_CODE:
@@ -326,14 +335,13 @@ int main(int argc, char* argv[]){
 
                         FD_SET(ret, &master);
 
-                        printf("Nuova connessione \n");
                         
                     } else{
                         //è un messaggio da un client già connesso
                         memset(&buffer, 0, sizeof(buffer));
                         ret = recv(i, mittente, USERN_CHAR, 0);
                         code = ntohl(code_t);
-                        send(i, code_t, sizeof(uint32_t), 0);
+                        send(i, &code_t, sizeof(uint32_t), 0);
 
                         printf("debug:  ricevuto  %d\n", code);
                         if(ret <= 0){
@@ -345,15 +353,13 @@ int main(int argc, char* argv[]){
                             close(i);
                             FD_CLR(i, &master);
                         } else{
-                            int a;
                             code_t = htonl(code);
-                            printf("è un messaggio da un client già connesso\n");
+                            //printf("è un messaggio da un client già connesso\n");
                             //ricevo messaggio da un client
-                            a = recv(i, mittente, USERN_CHAR, 0);
+                            recv(i, mittente, USERN_CHAR, 0);
                             //printf("debug: messaggio ricevuto da %s con rcv che vale %d\n", mittente, a);
-                            printf("debug: prima recv da %s\n", mittente);
 
-                            a = send(i, code_t, sizeof(uint32_t), 0);
+                            send(i, &code_t, sizeof(uint32_t), 0);
 
 
                             recv(i, buffer, BUFSIZE, 0);

@@ -18,6 +18,8 @@ struct destinatari* destinatari = NULL;
 
 struct utenti_online* utenti_online = NULL;
 
+int mkdir(const char *pathname, mode_t mode);
+
 
 
 /********************************************************************************************************/
@@ -139,6 +141,40 @@ void inserisci_destinatario( char *Username, int socket)
     }
 }
 
+//la funzione viene chiamata dal client: rimuove username dalla lista dei destinatari
+void rimuovi_destinatario(char *Username){
+      struct destinatari *pun, *temp;
+
+      if (destinatari == NULL)
+            return;
+
+      // todelete si trova in testa
+      if (strcmp(destinatari->username, Username) == 0)
+      {
+            pun = destinatari;
+            destinatari = destinatari->next;
+            free(pun);
+
+            return;
+      }
+
+     // elemento in mezzo alla lista
+
+      
+      for (pun = destinatari; pun != NULL; pun = pun->next, temp = pun)
+            if (strcmp(pun->username, Username) == 0)
+                  break;
+
+      // non ho trovato nulla
+      if (pun == NULL)
+            return;
+
+      // l'elemento è stato trovato
+      // elimino
+      temp->next = pun->next;
+      return;
+}
+
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /********************************************************************************************************/
@@ -198,14 +234,14 @@ int string_length(char *string){
 //tra gli utenti registrati && la password associata è corretta
 bool check_login_utente(struct credenziali cred){
     FILE *cr = fopen("./sources_s/reg_users.txt", "r");
-    char* temp_user, *temp_pw, buffer[20];
+    char temp_user[USERN_CHAR], temp_pw[PW_CHAR], buffer[20];
     fflush(stdout);
 
     //leggo due parole alla volta con fgets
     while(fgets(buffer, 20, cr)){
-        sscanf(buffer, "%s %s", &temp_user, &temp_pw);
-        if(strcmp(cred.username, &temp_user) == 0){
-            if(strcmp(cred.password, &temp_pw) == 0){
+        sscanf(buffer, "%s %s", temp_user, temp_pw);
+        if(strcmp(cred.username, temp_user) == 0){
+            if(strcmp(cred.password, temp_pw) == 0){
                 fclose(cr);
                 return true;
             }
@@ -392,6 +428,7 @@ bool login_s(int sock, struct utenti_online **testa){
         send(sock, (void*)&res_t, sizeof(uint32_t), 0);
         return false;
     }
+    //le credenziali sono corrette
     res = ACK;
     res_t = htonl(res);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
@@ -496,25 +533,25 @@ void append_msg_s(char *mittente, char* destinatario, char *msg){
 
     //controlla che esista la cartella del destinatario
     //altrimenti la crea
-    printf("Debug: append_msg_s\n");
-    strcpy(folder, "./server");
-    printf("Debug: folder = %s\n", folder);
+    strcpy(folder, "./sources_s");
     if(access(folder, F_OK) == 0){
-        printf("La cartella %s esiste\n", folder);
     }
     else{
-        printf("La cartella %s non esiste\n", folder);
         mkdir(folder, 0777);
         //creo il file di chat
     }
     strcat(folder, "/");
     strcat(folder, destinatario);
-    strcat(folder, "/chat");
     if(access(folder, F_OK) == 0){
-        printf("La cartella %s esiste\n", folder);
     }
     else{
-        printf("La cartella %s non esiste\n", folder);
+        mkdir(folder, 0777);
+        //creo il file di chat
+    }
+    strcat(folder, "/chat");
+    if(access(folder, F_OK) == 0){
+    }
+    else{
         mkdir(folder, 0777);
     }
     strcat(folder, "/");
@@ -523,24 +560,21 @@ void append_msg_s(char *mittente, char* destinatario, char *msg){
     strcat(path, ".txt");
     //controllo se il file esiste
     if(access(path, F_OK) == 0){
-        printf("Il file %s esiste\n", path);
         fp = fopen(path, "a");
     }
     else{
-        printf("Il file %s non esiste\n", path);
         fp = fopen(path, "w");
     }
 
     //scrivo il messaggio nel file
-    printf("Debug: scrivo %s nel file %s\n", msg, path);
     fprintf(fp, " %s", msg);
     fclose(fp);
     
     //gestisco il file riepilogativo dei messaggi pendenti relativi al destinatario
 
     strcat(folder, "pendenti.txt");
+    printf("Debug: folder = %s\n", folder);
     if(access(folder, F_OK) == 0){
-        printf("Il file esiste\n");
         fp1 = fopen(folder, "r+");
         //prelevo la prima parola del file
         fscanf(fp1, "%d", &count);
@@ -554,8 +588,7 @@ void append_msg_s(char *mittente, char* destinatario, char *msg){
         
     }
     else{
-        printf("Il file non esiste\n");
-        fp1 = fopen(path, "w");
+        fp1 = fopen(folder, "w");
         count = 1;
     }
     //recupero il timestamp attuale
@@ -598,11 +631,7 @@ void msg_s(int socket){
     recv(socket, (void*)&buffer, sizeof(buffer), 0);
 
 
-    printf("Debug: path: %s\n", path);
-    printf("Prima di append\n");
     append_msg_s(mittente, destinatario, buffer);
-    printf("RICEVUTO MESSAGGIO DA %s\n", mittente);
-    printf("%s\n", buffer);
 
 
 }
@@ -701,7 +730,7 @@ void print_chat(char *path){
     FILE *fp;
     char c;
 
-    fp = fopen(path, "w+");
+    fp = fopen(path, "r");
 
     while((c = fgetc(fp)) != EOF)
         printf("%c", c);
@@ -714,7 +743,6 @@ void print_chat(char *path){
 void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
     FILE *fp;
     char folder[100], path[100];
-    printf("Debug: append_msg_c\n");
 
     //controlla che esista la cartella del destinatario
     //altrimenti la crea
@@ -723,45 +751,34 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
 
     //controllo se la cartella esiste
     if(access(folder, F_OK) == 0){
-        printf("La cartella esiste\n");
     }
     else{
-        printf("La cartella non esiste\n");
         mkdir(folder, 0777);
-        printf("Cartella creata\n");
         //creo il file di chat
     }
     strcat(folder, "/chat/");
 
     //controllo se la cartella esiste
     if(access(folder, F_OK) == 0){
-        printf("La cartella esiste\n");
     }
     else{
-        printf("La cartella non esiste\n");
         mkdir(folder, 0777);
-        printf("Cartella creata\n");
         //creo il file di chat
     }
     strcpy(path, folder);
     strcat(path, destinatario);
     strcat(path, ".txt");
-    printf("Path: %s\n", path);
 
     //controllo se il file esiste
     if(access(path, F_OK) != -1){
-        printf("Il file esiste\n");
         fp = fopen(path, "a");
     }
     else{
-        printf("Il file non esiste\n");
         fp = fopen(path, "w");
     }
-    printf("Debug prima della fprintf di %s\n", msg);
     //aggiungo il messaggio alla fine del file
     fprintf(fp, "%s", msg);
 
-    printf("Debug dopo la fprintf\n");
     fclose(fp);
     
     
@@ -1012,7 +1029,7 @@ int chat_init_c(int code, char* username, int server_sock){
     }
     else{
         //devo connettermi all'utente
-        int port, dest_sock;
+        int port;
         uint32_t port_t;
 
         //il client invierà i messaggi direttamente all'utente
@@ -1022,7 +1039,6 @@ int chat_init_c(int code, char* username, int server_sock){
         port = ntohl(port_t);
 
         //aggiungo l'utente alla lista dei destinatari
-        printf("chat con %s e socket %d\n", username, dest_sock);
         return port;
     }
     
