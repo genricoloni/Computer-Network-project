@@ -280,7 +280,7 @@ int main(int argc, char* argv[]){
                                 system("clear");
                                 printf("path: %s\n", path);
 
-                                print_chat(path);
+                                print_chat(OWN_USER, destinatari->username);
 
                                 break;
                             }
@@ -301,7 +301,7 @@ int main(int argc, char* argv[]){
                             system("clear");
                             printf("path: %s\n", path);
 
-                            print_chat(path);
+                            print_chat(OWN_USER, destinatari->username);
                             break;
 
                         case SHARE_CODE:

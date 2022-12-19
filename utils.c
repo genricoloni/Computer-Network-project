@@ -726,11 +726,44 @@ void append_msg_rcv(char* mittente, char *msg, char*OWN_USER){
 
 
 //funzione che stampa la cronologia della chat da un file dato in input
-void print_chat(char *path){
+void print_chat(char * OWN_USER, char *destinatario){
     FILE *fp;
     char c;
 
-    fp = fopen(path, "r");
+    char folder[100];
+
+    strcpy(folder, "./");
+    strcat(folder, OWN_USER);
+    printf("Debug: path = %s\n", folder);
+    if(access(folder, F_OK) == 0){
+    }
+    else{
+        mkdir(folder, 0777);
+        //creo il file di chat
+    }
+    strcat(folder, "/chat/");
+    printf("Debug: folder = %s\n", folder);
+
+    //controllo se la cartella esiste
+    if(access(folder, F_OK) == 0){
+    }
+    else{
+        mkdir(folder, 0777);
+        //creo il file di chat
+    }
+
+    strcat(folder, destinatario);
+    strcat(folder, ".txt");
+    printf("Debug: path = %s\n", folder);
+
+    //controllo se il file esiste
+    if(access(folder, F_OK) != -1){
+        fp = fopen(folder, "r");
+    }
+    else{
+        fp = fopen(folder, "w");
+    }
+    fp = fopen(folder, "r");
 
     while((c = fgetc(fp)) != EOF)
         printf("%c", c);
@@ -748,6 +781,7 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
     //altrimenti la crea
     strcpy(folder, "./");
     strcat(folder, OWN_USER);
+    printf("Debug: folder = %s\n", folder);
 
     //controllo se la cartella esiste
     if(access(folder, F_OK) == 0){
@@ -757,6 +791,7 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
         //creo il file di chat
     }
     strcat(folder, "/chat/");
+    printf("Debug: folder = %s\n", folder);
 
     //controllo se la cartella esiste
     if(access(folder, F_OK) == 0){
@@ -768,6 +803,7 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
     strcpy(path, folder);
     strcat(path, destinatario);
     strcat(path, ".txt");
+    printf("Debug: path = %s\n", path);
 
     //controllo se il file esiste
     if(access(path, F_OK) != -1){
