@@ -67,7 +67,7 @@ struct messaggio_pendente{
 //del mittente, dal timestamp e dal messaggio vero e proprio
 struct sent_message{
     char utente[USERN_CHAR];
-    char* messaggio;
+    char messaggio[BUFSIZE];
     time_t timestamp;
 };
 
