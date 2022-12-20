@@ -140,13 +140,7 @@ int main(int argc, char* argv[]){
     }
 
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<MENU PRINCIPALE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
-        printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Menu principale>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
-        printf("Connesso come %s\n", credenziali.username);
-        printf("1)hanging                   -->ricevi i messaggi pendenti quando eri offline\n");
-        printf("2)show  username            -->mostra i messaggi inviati da username\n");
-        printf("3)chat  username            -->avvia una chat con username\n");
-        printf("4)share username file_name  -->condividi il file file_name con tutti gli utenti connessi\n");
-        printf("5)out                       -->disconnetti l'utente\n");
+    print_menu(OWN_USER);
 
     fflush(stdin);
 
@@ -164,76 +158,103 @@ int main(int argc, char* argv[]){
 
                 if(i == STDIN){
 
-                    if(client_offline == false && code == 0 && in_chat == true){
-                        //devo inviare il messaggio al server
-                        fflush(stdin);
-                        uint32_t code_t = htonl(MSG_CODE);
-                        
-
-                        //chiamo una funzione che stampa il contenuto di un file
-                        fgets(buffer, 1024 - 1, stdin);
-                        append_msg_c( buffer, destinatari->username, OWN_USER);
-                        send(server_com, &code_t, sizeof(uint32_t), 0);
-
-
-
-                        send(server_com, &destinatari->username, sizeof(destinatari->username), 0);
-                        send(server_com, &buffer, sizeof(buffer), 0);
-                        //system("clear");
-                        //print_chat(path);
-                        
-                        
-
-                        //printf("CHAT CON %s\n", destinatari);
-                        fflush(stdin);
-                        break;
-                    }
-                    if(client_offline == true && code > 0 && in_chat == true){
+                    if (in_chat == true){
                         struct destinatari *tmp = destinatari;
-                        int a;
 
-                        //devo inviare il messaggio al client
+                        //prendo in input il messaggio da inviare
                         fgets(buffer, 1024 - 1, stdin);
-                        
-                        //invio il messaggio a tutti i destinatari
-                        while(tmp != NULL){
-                            struct sent_message *msg = malloc(sizeof(struct sent_message));
-                            int ack;
-                            uint32_t code_t = htonl(MSG_CODE);
-                            strcpy(msg->utente, OWN_USER);
-                            strcpy(msg->messaggio, buffer);
-                            //printf("debug: invio messaggio a %s\n", destinatari->username);
-                            sprintf(path, "./%s/chat/%s.txt", OWN_USER, tmp->username);
-                            append_msg_c( buffer, tmp->username, OWN_USER);
-                            //invio codice
-                            a = send(tmp->socket , &code_t, sizeof(uint32_t), 0);
-
-                            if (a < 0){
-                                printf("Client disconnesso: rinviare il messaggio\n");
-                                client_offline = false;
-                                if (in_group == false){
-                                    //non sono in una chat di gruppo
-                                    //rimuovo il destinatario dalla lista
-                                    //e aggiungo il server alla lista
-                                    rimuovi_destinatario(tmp->username);
-                                    inserisci_destinatario("server", server_com);
-
+                        buffer[strlen(buffer) - 1] = '\0';
+                        printf("debug: %s\n", buffer);
+                        //controllo se il messaggio è un comando
+                        if(strcmp(buffer, "/q\0") == 0){
+                            in_chat = false;
+                            //chiudo il socket e rimuovo dai destinatari se sono in chat P2P;
+                            if(client_offline == true){
+                                rimuovi_tutti_destinatari();
                                 }
-                            }
-
-                            a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
+                            client_offline = true;
                             
-                            a = send(tmp->socket , OWN_USER, USERN_CHAR, 0);
-                            //ricevo ack
+                            system("clear");
+                            print_menu(OWN_USER);
+                            continue;
+                        }
 
-                            a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
+                        if(client_offline == false && code == 0){
+                            //devo inviare il messaggio al server
+                            fflush(stdin);
+                            uint32_t code_t = htonl(MSG_CODE);
 
-                            a = send(tmp->socket , buffer, BUFSIZE, 0);
-                            free(msg);
-                            // scorro la lista dei destinatari
-                            tmp = tmp->next;                        }
-                        break;
 
+                            //chiamo una funzione che stampa il contenuto di un file
+                            append_msg_c( buffer, destinatari->username, OWN_USER);
+                            send(server_com, &code_t, sizeof(uint32_t), 0);
+
+
+
+                            send(server_com, &destinatari->username, sizeof(destinatari->username), 0);
+                            send(server_com, &buffer, sizeof(buffer), 0);
+                            //system("clear");
+                            //print_chat(path);
+
+
+
+                            //printf("CHAT CON %s\n", destinatari);
+                            fflush(stdin);
+                            continue;
+                        }
+                        if(client_offline == true && code > 0){
+                            int a;
+
+                            //devo inviare il messaggio al client
+
+                            //invio il messaggio a tutti i destinatari
+                            while(tmp != NULL){
+                                struct sent_message *msg = malloc(sizeof(struct sent_message));
+                                int ack;
+                                uint32_t code_t = htonl(MSG_CODE);
+                                strcpy(msg->utente, OWN_USER);
+                                strcpy(msg->messaggio, buffer);
+                                //printf("debug: invio messaggio a %s\n", destinatari->username);
+                                sprintf(path, "./%s/chat/%s.txt", OWN_USER, tmp->username);
+                                append_msg_c( buffer, tmp->username, OWN_USER);
+                                //invio codice
+                                a = send(tmp->socket , &code_t, sizeof(uint32_t), 0);
+
+                                if (a < 0){
+                                    client_offline = false;
+                                    if (in_group == false){
+                                        printf("Client disconnesso inaspettatatamente: rinviare il messaggio\n");
+
+                                        //non sono in una chat di gruppo
+                                        //rimuovo il destinatario dalla lista
+                                        //e aggiungo il server alla lista
+                                        rimuovi_destinatario(tmp->username);
+                                        inserisci_destinatario("server", server_com);
+                                        break;
+
+                                    }
+                                    else{
+                                        //sono in una chat di gruppo
+                                        //rimuovo il destinatario dalla lista
+                                        rimuovi_destinatario(tmp->username);
+                                        printf("Sembra che il client %s sia disconnesso, non riceverà più i messaggi da questa chat di gruppo\n", tmp->username);
+                                        break;
+                                    }
+                                }
+
+                                a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
+
+                                a = send(tmp->socket , OWN_USER, USERN_CHAR, 0);
+                                //ricevo ack
+
+                                a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
+
+                                a = send(tmp->socket , buffer, BUFSIZE, 0);
+                                free(msg);
+                                // scorro la lista dei destinatari
+                                tmp = tmp->next;                        }
+                                continue;
+                        }
                     }
 
                         fflush(stdin);
@@ -261,7 +282,7 @@ int main(int argc, char* argv[]){
                         case CHAT_CODE:
                             code = chat_init_c(code, username, server_com);
                             //gestione struct e memoria
-                        fflush(stdin);
+                            fflush(stdin);
 
                             if (code == -1){
                                 client_offline = false;
@@ -379,7 +400,4 @@ int main(int argc, char* argv[]){
             }
         }
     }
-
-
-
 }

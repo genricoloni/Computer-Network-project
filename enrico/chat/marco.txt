@@ -1,3 +1,19 @@
 ciao
 ciao
 ciao
+out
+R: ciao
+ciao marco
+come stai?
+R: tutto bene
+R: tutto bene
+R: tu?
+R: tu?
+R: tutto bene
+R: dai
+R: beh?
+dai
+/q
+
+/q
+prova

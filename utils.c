@@ -175,6 +175,19 @@ void rimuovi_destinatario(char *Username){
       return;
 }
 
+//funzione che rimuove tutti gli elementi dalla lista dei destinatari e chiude i relativi socket
+void rimuovi_tutti_destinatari(){
+    struct destinatari *temp;
+    while(destinatari != NULL){
+        close(destinatari->socket);
+        temp = destinatari;
+        destinatari = destinatari->next;
+        free(temp);
+    }
+}
+
+
+
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /********************************************************************************************************/
@@ -707,18 +720,15 @@ void append_msg_rcv(char* mittente, char *msg, char*OWN_USER){
     strcat(path, "/chat/");
     strcat(path, mittente);
     strcat(path, ".txt");
-    printf("Path: %s\n", path);
 
     strcpy(buffer, "R: ");
     strncat(buffer, msg, strlen(msg)-1);
     //strcat(buffer, "\0");
 
 
-    printf("Debug: ricevuto %s\n", buffer);
 
     fileptr = fopen(path, "a");
     fprintf(fileptr, "%s\n", buffer);
-    printf("Debug: dopo fprintf\n");
     fclose(fileptr);
 }
 
@@ -734,7 +744,6 @@ void print_chat(char * OWN_USER, char *destinatario){
 
     strcpy(folder, "./");
     strcat(folder, OWN_USER);
-    printf("Debug: path = %s\n", folder);
     if(access(folder, F_OK) == 0){
     }
     else{
@@ -742,7 +751,6 @@ void print_chat(char * OWN_USER, char *destinatario){
         //creo il file di chat
     }
     strcat(folder, "/chat/");
-    printf("Debug: folder = %s\n", folder);
 
     //controllo se la cartella esiste
     if(access(folder, F_OK) == 0){
@@ -754,7 +762,6 @@ void print_chat(char * OWN_USER, char *destinatario){
 
     strcat(folder, destinatario);
     strcat(folder, ".txt");
-    printf("Debug: path = %s\n", folder);
 
     //controllo se il file esiste
     if(access(folder, F_OK) != -1){
@@ -781,7 +788,6 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
     //altrimenti la crea
     strcpy(folder, "./");
     strcat(folder, OWN_USER);
-    printf("Debug: folder = %s\n", folder);
 
     //controllo se la cartella esiste
     if(access(folder, F_OK) == 0){
@@ -791,7 +797,6 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
         //creo il file di chat
     }
     strcat(folder, "/chat/");
-    printf("Debug: folder = %s\n", folder);
 
     //controllo se la cartella esiste
     if(access(folder, F_OK) == 0){
@@ -803,7 +808,6 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
     strcpy(path, folder);
     strcat(path, destinatario);
     strcat(path, ".txt");
-    printf("Debug: path = %s\n", path);
 
     //controllo se il file esiste
     if(access(path, F_OK) != -1){
@@ -821,7 +825,17 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
 }
 
 
+//funzione che stampa la lista di comandi del client
+void print_menu(char* OWN_USER){
+    printf("<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<Menu principale>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
+    printf("Connesso come %s\n", OWN_USER);
+    printf("1)hanging                   -->ricevi i messaggi pendenti quando eri offline\n");
+    printf("2)show  username            -->mostra i messaggi inviati da username\n");
+    printf("3)chat  username            -->avvia una chat con username\n");
+    printf("4)share username file_name  -->condividi il file file_name con tutti gli utenti connessi\n");
+    printf("5)out                       -->disconnetti l'utente\n");
 
+}
 
 
 /********************************************************************************************************/
