@@ -275,7 +275,7 @@ bool check_login_utente(struct credenziali cred){
 void inizializza_history(char *Username, int port){
     struct user_record record;
     time_t rawtime, timestamp;
-    FILE *fileptr = fopen("./sources_s/registro.txt", "ab+");
+    FILE *fileptr = fopen("./sources_s/registro.txt", "a");
 
     //aggiungo un record al registro
     timestamp = time(&rawtime);
@@ -287,7 +287,6 @@ void inizializza_history(char *Username, int port){
     strcpy(record.timestamp_out, "-\0");
     record.Port = port;
     //faccio la fseek
-    fseek(fileptr, 0, SEEK_END);
     fprintf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
     fprintf(fileptr, "\n");
     fclose(fileptr);
@@ -670,12 +669,12 @@ void out_s(char *username){
     struct user_record record;
     time_t rawtime;
     char buffer[100], tmp[20],tmp1[20], tmp2[20], tmp3[20], tmp4[20], tmp5[20];
-    FILE *fileptr = fopen("./sources_s/registro.txt", "r+");
+    FILE *fileptr = fopen("./sources_s/registro.txt", "r"), *tmpfile;
 
     printf("Debug prima della fgets\n");
     printf("Debug: username = %s\n", username);
 
-    //cerco nel file registro.txt l'entry relativa a username
+    /*//cerco nel file registro.txt l'entry relativa a username
     while(fgets(buffer, 80, fileptr) != NULL){
         printf("Debug: buffer = %s\n", buffer);
         sscanf(buffer, "%s %s %s %s %s %s %s %s %d", record.Username, tmp1, tmp2, tmp3, tmp4, tmp5, record.timestamp_out, tmp, &record.Port);
@@ -711,7 +710,53 @@ void out_s(char *username){
             return;
         }
     printf("Debug: non trovato\n");
-}}
+    
+}
+*/
+tmpfile = fopen("./sources_s/tmpregistro.txt", "w");
+
+while (fgets(buffer, sizeof(buffer), fileptr) != NULL){
+    sscanf(buffer, "%s %s %s %s %s %s %s %s %d", record.Username, tmp1, tmp2, tmp3, tmp4, tmp5, record.timestamp_out, tmp, &record.Port);
+    if(strcmp(record.Username, username) == 0){
+        //abbiamo trovato la entry, dobbiamo verificare se è ha un timestamp di disconnessione
+        //se non ha un timestamp di disconnessione, allora aggiorniamo il timestamp di disconnessione
+        //e scriviamo su file
+
+        if(record.timestamp_out[0] == '\0'){
+            //aggiorno il timestamp di disconnessione
+            time(&rawtime);
+            //record.timestamp_out = rawtime;
+            strcpy(record.timestamp_out, ctime(&rawtime));
+            printf("Debug: timestamp_out orima di fprintf: %s\n", record.timestamp_out);
+            //printf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
+            strcpy(buffer, "\0");
+            //fseek(fileptr, -strlen(buffer), SEEK_CUR);
+                    printf("Debug: tmp1: %s\n", tmp1);
+        printf("Debug: tmp2: %s\n", tmp2);
+        printf("Debug: tmp3: %s\n", tmp3);
+        printf("Debug: tmp4: %s\n", tmp4);
+        printf("Debug: tmp5: %s\n", tmp5);
+        printf("Debug: tmp: %s\n", tmp);
+        record.Port = get_port(username);
+        strncpy(record.timestamp_out, record.timestamp_out, strlen(record.timestamp_out)-1);
+            fprintf(tmpfile, "%s %s %s %s %s %s %s%d", record.Username, tmp1, tmp2, tmp3, tmp4, tmp5, record.timestamp_out, record.Port);
+            //cancello dal file registro.txt l'entry relativa a username
+
+        }}
+        else{
+            //l'entry ha già un timestamp di disconnessione, quindi non facciamo nulla
+            fprintf(tmpfile, "%s\n", buffer);
+        }
+
+            fclose(fileptr);
+            fclose(tmpfile);
+            rename("./sources_s/tmpregistro.txt", "./sources_s/registro.txt");
+            return;
+        
+    }
+}
+
+
 
 
 
