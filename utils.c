@@ -539,10 +539,11 @@ void chat_s(int socket){
 
 //funzione che gestisce la ricezione dei messaggi pendenti nel server
 void append_msg_s(char *mittente, char* destinatario, char *msg){
-    FILE *fp, *fp1;
-    char folder[100], path[100], timestamp[100];
+    FILE *fp, *fp1, *tmp;
+    char folder[100], path[100], timestamp[100], line[100], tmp_mitt[USERN_CHAR];
     int count;
-    time_t rawtime;
+    bool found = false;
+    time_t rawtime = time(NULL);
 
     //controlla che esista la cartella del destinatario
     //altrimenti la crea
@@ -580,37 +581,47 @@ void append_msg_s(char *mittente, char* destinatario, char *msg){
     }
 
     //scrivo il messaggio nel file
-    fprintf(fp, " %s", msg);
+    fprintf(fp, "%s\n", msg);
     fclose(fp);
     
     //gestisco il file riepilogativo dei messaggi pendenti relativi al destinatario
 
     strcat(folder, "pendenti.txt");
-    printf("Debug: folder = %s\n", folder);
-    if(access(folder, F_OK) == 0){
-        fp1 = fopen(folder, "r+");
-        //prelevo la prima parola del file
-        fscanf(fp1, "%d", &count);
-        //incremento il contatore
-        count++;
-        //cancello il file dalla cartella
-        fclose(fp1);
-        remove(folder);
-        //creo il file con il nuovo timestamp
+    if(access(folder, F_OK) != 0){
+        //il file non esiste
         fp1 = fopen(folder, "w");
-        
-    }
-    else{
-        fp1 = fopen(folder, "w");
+        strcpy(timestamp, ctime(&rawtime));
         count = 1;
+        fprintf(fp1, "%s %d %s", mittente, count, timestamp);
+        fclose(fp1);
+        return;
     }
-    //recupero il timestamp attuale
-    time(&rawtime);
-    strcpy(timestamp, ctime(&rawtime));
-
-    fprintf(fp1, "%d \n %s", count, timestamp);
-
+    //il file esiste
+    fp1 = fopen(folder, "r");
+    tmp = fopen("tmp.txt", "w");
+    while(fgets(line, sizeof(line), fp1) != NULL){
+        sscanf(line, "%s %d %s", tmp_mitt, &count, timestamp);
+        if(strcmp(tmp_mitt, mittente) == 0){
+            if (found == true){
+                continue;
+            }
+            found = true;
+            count++;
+            strcpy(timestamp, ctime(&rawtime));
+        }
+        
+        fprintf(tmp, "%s %d %s", mittente, count, timestamp);
+        }
+    if(found == false){
+        strcpy(timestamp, ctime(&rawtime));
+        count = 1;
+        fprintf(tmp, "%s %d %s", mittente, count, timestamp);
+    }
     fclose(fp1);
+    fclose(tmp);
+    if(rename("tmp.txt", folder) != 0){
+        perror("rename");
+    }
 
 
 }
