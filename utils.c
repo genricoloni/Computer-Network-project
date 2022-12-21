@@ -65,6 +65,21 @@ void wait(){
 }
 
 
+
+
+//funzione che legge una riga da un file e la salva in un buffer
+void read_line(FILE *fileptr, char *buffer){
+    int i = 0;
+    char c;
+
+    while((c = fgetc(fileptr)) != EOF && c != '\n'){
+        buffer[i] = c;
+        i++;
+    }
+    buffer[i] = '\0';
+}
+
+
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY SULLE LISTE>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /********************************************************************************************************/
@@ -192,32 +207,6 @@ void rimuovi_tutti_destinatari(){
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DI UTILITY PER SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /********************************************************************************************************/
 
-// aggiorna i valori della history quando il client fa login
-/*void aggiorna_registro_utente(char *Username, int port){
-      struct user_record record;
-      time_t rawtime;
-      FILE *fileptr = fopen("./sources_s/registro.txt", "rb+");
-      while (fread(&record, sizeof(struct user_record), 1, fileptr))
-      {
-            if (strcmp(record.Username, Username) == 0)
-            {
-                // ho trovato il record che cercavo e quindi ne aggiorno il campo timestamp_in
-                //trovo il timestamp attuale e lo assegno alla variabile
-                time(&rawtime);
-                record.timestamp_in = ctime(&rawtime);
-                record.timestamp_out = 0;
-                record.Port = port;
-                printf("Debug: timestamp-> %s\n", record.timestamp_in);
-                fseek(fileptr, -1 * sizeof(struct user_record), SEEK_CUR);
-                fwrite(&record, sizeof(struct user_record), 1, fileptr);
-                fclose(fileptr);
-                return ;
-            }
-}
-      fclose(fileptr);
-      return;
-}*/
-
 
 //la funzione controlla che l'username appartenga ad un utente registrato
 bool check_presenza_utente(char* username){
@@ -275,7 +264,7 @@ bool check_login_utente(struct credenziali cred){
 void inizializza_history(char *Username, int port){
     struct user_record record;
     time_t rawtime, timestamp;
-    FILE *fileptr = fopen("./sources_s/registro.txt", "ab+");
+    FILE *fileptr = fopen("./sources_s/registro.txt", "a");
 
     //aggiungo un record al registro
     timestamp = time(&rawtime);
@@ -283,13 +272,18 @@ void inizializza_history(char *Username, int port){
     //record.timestamp_in = ctime(&timestamp);
     //record.timestamp_out = ctime(&tmp);
     strcpy(record.timestamp_in, ctime(&timestamp));
-    strcat(record.timestamp_in, "\0");
-    strcpy(record.timestamp_out, "-\0");
+    //rimuovo \n dalla stringa
+    record.timestamp_in[string_length(record.timestamp_in) - 1] = '\0';
+    //strcat(record.timestamp_in, "\0");
+    printf("Debug: %s in login", record.timestamp_in);
+
+    strcpy(record.timestamp_out, "-");
+    printf("Debug: %s", record.timestamp_out);
+
+    
     record.Port = port;
     //faccio la fseek
-    fseek(fileptr, 0, SEEK_END);
-    fprintf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
-    fprintf(fileptr, "\n");
+    fprintf(fileptr, "%s %s %s %d\n", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
     fclose(fileptr);
     return;
 }
@@ -667,51 +661,89 @@ void msg_s(int socket){
 //la funzione trova la entry relativa ad username nel file registro.txt, aggiorna
 //il timestamp di disconnessione e scrive su file
 void out_s(char *username){
-    struct user_record record;
     time_t rawtime;
-    char buffer[100], tmp[20],tmp1[20], tmp2[20], tmp3[20], tmp4[20], tmp5[20];
-    FILE *fileptr = fopen("./sources_s/registro.txt", "r+");
+    int i = 0;
+    char buffer[110],tmp[20],tmp1[20], tmp2[20], tmp3[20], tmp4[20], tmp5[20], tmp6[25], tmp7[20], c;
+    FILE *fileptr = fopen("./sources_s/registro.txt", "r"), *tmpf = fopen("./sources_s/tmp.txt", "w");
 
-    printf("Debug prima della fgets\n");
-    printf("Debug: username = %s\n", username);
 
-    //cerco nel file registro.txt l'entry relativa a username
-    while(fgets(buffer, 80, fileptr) != NULL){
-        printf("Debug: buffer = %s\n", buffer);
-        sscanf(buffer, "%s %s %s %s %s %s %s %s %d", record.Username, tmp1, tmp2, tmp3, tmp4, tmp5, record.timestamp_out, tmp, &record.Port);
-        strcpy(record.timestamp_in, tmp1);
-        strcat(record.timestamp_in, " ");
-        strcat(record.timestamp_in, tmp2);
-        strcat(record.timestamp_in, " ");
-        strcat(record.timestamp_in, tmp3);
-        strcat(record.timestamp_in, " ");
-        strcat(record.timestamp_in, tmp4);
-        strcat(record.timestamp_in, " ");
-        strcat(record.timestamp_in, tmp5);
 
-        printf("Debug: %s\n", tmp);
+    memset(buffer, 0, sizeof(buffer));
 
-        if(strcmp(record.Username, username) == 0){
-            //trovata l'entry relativa a username
-            printf("Debug: trovata entry relativa a %s\n", username);
-            //aggiorno il timestamp di disconnessione
-            time(&rawtime);
-            //record.timestamp_out = rawtime;
-            strcpy(record.timestamp_out, ctime(&rawtime));
-            //sovrascrivo l'entry nel file registro.txt
-            record.Port = get_port(username);
-            //printf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
-            strcpy(buffer, "\0");
-            fputs(buffer, fileptr);
-            //fseek(fileptr, -strlen(buffer), SEEK_CUR);
-            fprintf(fileptr, "%s %s %s %d", record.Username, record.timestamp_in, record.timestamp_out, record.Port);
-            fprintf(fileptr, "\n");
-            //cancello dal file registro.txt l'entry relativa a username
-            fclose(fileptr);
-            return;
+    while (!feof(fileptr)) {
+      // leggi una riga del file
+      while((c = fgetc(fileptr)) != '\n' ){
+        buffer[i] = c;
+        i++;
+      }
+      
+      buffer[i] = '\0';
+      // resetta l'indice del buffer e avanza il cursore alla riga successiva del file
+      i = 0;
+        // leggi i campi della riga
+        //è formata da username, timestamp di connessione, timestamp di disconnessione, porta
+            sscanf(buffer, "%s %s %s %s %s %s %s %s ", tmp, tmp1, tmp2, tmp3, tmp4 , tmp5, tmp6, tmp7);
+        if (strcmp(tmp, username) == 0 && strcmp(tmp6, "-") == 0){
+            //verifico che il campo timestamp di disconnessione sia -
+            //se è - allora lo aggiorno
+            //altrimenti non faccio nulla
+            //se tmp6 è il carattere di fine stringa 
+
+                //aggiorno il timestamp di disconnessione
+                printf("trovatp\n");
+                rawtime = time(NULL);
+                strcpy(tmp6, ctime(&rawtime));
+                tmp6[strlen(tmp6)-1] = '\0';
+                //scrivo su file
+                memset(buffer, 0, sizeof(buffer));
+                strcat(buffer, tmp);
+                strcat(buffer, " ");
+                strcat(buffer, tmp1);
+                strcat(buffer, " ");
+                strcat(buffer, tmp2);
+                strcat(buffer, " ");
+                strcat(buffer, tmp3);
+                strcat(buffer, " ");
+                strcat(buffer, tmp4);
+                strcat(buffer, " ");
+                strcat(buffer, tmp5);
+                strcat(buffer, " ");
+                strcat(buffer, tmp6);
+                strcat(buffer, " ");
+                strcat(buffer, tmp7);
+                strcat(buffer, "\0");
+                printf("prima di fprintf modificante\n");
+                fprintf(tmpf, "%s\n", buffer);
+                printf("dopo fprintf modificante\n");
+                //continue;
+        }else{
+            //scrivo su file
+            printf("prima di fprintf non modificante\n");
+            fprintf(tmpf, "%s\n", buffer);
+            printf("dopo fprintf non modificante\n");
         }
-    printf("Debug: non trovato\n");
-}}
+        //scrivo su file
+        
+
+        //leggo il carattere successivo: se è EOF esco dal ciclo
+              c = fgetc(fileptr);
+        if(c == EOF){
+            break;
+        }
+        //altrimenti porto indietro il cursore di un carattere
+        else 
+            fseek(fileptr, -1, SEEK_CUR);
+
+
+
+    }
+        fclose(fileptr);
+        fclose(tmpf);
+        rename("./sources_s/tmp.txt", "./sources_s/registro.txt");
+        return;
+}
+
+
 
 
 

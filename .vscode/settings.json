@@ -28,7 +28,12 @@
         "__functional_base": "c",
         "__functional_base_03": "c",
         "exception": "c",
-        "tuple": "c"
+        "tuple": "c",
+        "chrono": "c",
+        "__bit_reference": "c",
+        "unordered_map": "c",
+        "random": "c",
+        "queue": "c"
     },
     "C_Cpp.errorSquiggles": "Disabled"
 }
