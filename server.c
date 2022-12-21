@@ -138,7 +138,7 @@ int main(int argc, char* argv[]){
                             break;
 
                         case HANG_CODE:
-                            //hang_s(i, &utenti_online);
+                            hanging_s(i);
                             break;
 
                         case SHOW_CODE:

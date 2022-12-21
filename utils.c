@@ -575,7 +575,7 @@ void append_msg_s(char *mittente, char* destinatario, char *msg){
     }
 
     //scrivo il messaggio nel file
-    fprintf(fp, "%s\n", msg);
+    fprintf(fp, "%s \n", msg);
     fclose(fp);
     
     //gestisco il file riepilogativo dei messaggi pendenti relativi al destinatario
@@ -618,6 +618,80 @@ void append_msg_s(char *mittente, char* destinatario, char *msg){
     }
 
 
+}
+
+
+//funzione per la richiesta dei messaggi pendenti da parte di un client
+void hanging_s(int socket){
+    struct messaggio_pendente msg_pend;
+    char username[USERN_CHAR];
+    char path[100], buffer[BUFSIZE];
+    char tmp1[20], tmp2[20], tmp3[20], tmp4[20], tmp5[20];
+    int i, line_count = 0, c;
+    uint32_t count_t, msg_t;
+    strcpy(username, get_username(socket));
+    FILE *fp;
+
+
+    //costruisco il path del file che è del tipo ./sources_s/username/chat/pendenti.txt
+    strcat(path, "./sources_s/");
+    strcat(path, username);
+    strcat(path, "/chat/pendenti.txt");
+
+    //apro il file
+    fp = fopen(path, "r");
+
+
+    //prima conto quante righe ci sono nel file
+    while((c = fgetc(fp)) != EOF){
+        if(c == '\n')
+            line_count++;
+        //invio la riga al client
+    }
+    printf("line count: %d\n", line_count);
+    count_t = htonl(line_count);
+    send(socket, (void*)&count_t, sizeof(uint32_t), 0);
+    i = 0;
+    while(line_count > 0 && !feof(fp)){
+        while((c = fgetc(fp)) != '\n' ){
+            buffer[i] = c;
+            i++;
+        }
+      
+    buffer[i] = '\0';
+    sscanf(buffer, "%s %d %s %s %s %s %s", msg_pend.utente, msg_pend.messaggi_pendenti, tmp1, tmp2, tmp3, tmp4, tmp5);
+    //collasso tutti i tmp in un'unica stringa
+    strcat(tmp1, " ");
+    strcat(tmp1, tmp2);
+    strcat(tmp1, " ");
+    strcat(tmp1, tmp3);
+    strcat(tmp1, " ");
+    strcat(tmp1, tmp4);
+    strcat(tmp1, " ");
+    strcat(tmp1, tmp5);
+    strcpy(msg_pend.timestamp, tmp1);
+    //invio prima username
+    send(socket, (void*)&msg_pend.utente, sizeof(msg_pend.utente), 0);
+    //invio poi il numero di messaggi pendenti dopo aver serializzato
+    msg_t = htonl(msg_pend.messaggi_pendenti);
+    send(socket, (void*)&msg_t, sizeof(uint32_t), 0);
+    //invio infine il timestamp
+    send(socket, (void*)&msg_pend.timestamp, sizeof(msg_pend.timestamp), 0);
+    line_count--;
+
+    //leggo il carattere successivo: se è EOF esco dal ciclo
+    c = fgetc(fp);
+    if(c == EOF){
+        break;
+    }
+    //altrimenti porto indietro il cursore di un carattere
+    else 
+        fseek(fp, -1, SEEK_CUR);
+
+    }
+    fclose(fp);
+    fp = fopen(path, "w");
+    fclose(fp);
 }
 
 
@@ -690,7 +764,6 @@ void out_s(char *username){
             //se tmp6 è il carattere di fine stringa 
 
                 //aggiorno il timestamp di disconnessione
-                printf("trovatp\n");
                 rawtime = time(NULL);
                 strcpy(tmp6, ctime(&rawtime));
                 tmp6[strlen(tmp6)-1] = '\0';
@@ -712,15 +785,11 @@ void out_s(char *username){
                 strcat(buffer, " ");
                 strcat(buffer, tmp7);
                 strcat(buffer, "\0");
-                printf("prima di fprintf modificante\n");
                 fprintf(tmpf, "%s\n", buffer);
-                printf("dopo fprintf modificante\n");
                 //continue;
         }else{
             //scrivo su file
-            printf("prima di fprintf non modificante\n");
             fprintf(tmpf, "%s\n", buffer);
-            printf("dopo fprintf non modificante\n");
         }
         //scrivo su file
         
@@ -769,7 +838,7 @@ void append_msg_rcv(char* mittente, char *msg, char*OWN_USER){
     //strcat(buffer, "\0");
 
 
-
+    printf("Prima della fprintf  di %s\n", buffer);
     fileptr = fopen(path, "a");
     fprintf(fileptr, "%s\n", buffer);
     fclose(fileptr);
@@ -860,7 +929,7 @@ void append_msg_c(char *msg, char* destinatario, char* OWN_USER){
         fp = fopen(path, "w");
     }
     //aggiungo il messaggio alla fine del file
-    fprintf(fp, "%s", msg);
+    fprintf(fp, "%s\n", msg);
 
     fclose(fp);
     
