@@ -271,6 +271,8 @@ int main(int argc, char* argv[]){
                     switch (code){
                         case HANG_CODE:
                             hanging_c(code, server_com);
+                            wait();
+                            print_menu(OWN_USER);
                             break;
 
                         case SHOW_CODE:

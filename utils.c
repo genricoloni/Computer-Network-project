@@ -275,10 +275,8 @@ void inizializza_history(char *Username, int port){
     //rimuovo \n dalla stringa
     record.timestamp_in[string_length(record.timestamp_in) - 1] = '\0';
     //strcat(record.timestamp_in, "\0");
-    printf("Debug: %s in login", record.timestamp_in);
 
     strcpy(record.timestamp_out, "-");
-    printf("Debug: %s", record.timestamp_out);
 
     
     record.Port = port;
@@ -626,20 +624,27 @@ void hanging_s(int socket){
     struct messaggio_pendente msg_pend;
     char username[USERN_CHAR];
     char path[100], buffer[BUFSIZE];
-    char tmp1[20], tmp2[20], tmp3[20], tmp4[20], tmp5[20];
-    int i, line_count = 0, c;
+    char tmp1[20], tmp2[20], tmp3[20], tmp4[20], tmp5[20], tmpN[20];
+    int i, line_count = 0, c, count, d;
     uint32_t count_t, msg_t;
     strcpy(username, get_username(socket));
     FILE *fp;
 
 
     //costruisco il path del file che è del tipo ./sources_s/username/chat/pendenti.txt
-    strcat(path, "./sources_s/");
+    strcpy(path, "./sources_s/");
     strcat(path, username);
     strcat(path, "/chat/pendenti.txt");
 
+    printf("Debug hanging: %s\n", path);
+
     //apro il file
     fp = fopen(path, "r");
+
+    //invio ack
+    msg_t = htonl(ACK);
+    send(socket, (void*)&msg_t, sizeof(uint32_t), 0);
+    
 
 
     //prima conto quante righe ci sono nel file
@@ -648,18 +653,28 @@ void hanging_s(int socket){
             line_count++;
         //invio la riga al client
     }
+    fclose(fp);
+    fp = fopen(path, "r");
     printf("line count: %d\n", line_count);
     count_t = htonl(line_count);
     send(socket, (void*)&count_t, sizeof(uint32_t), 0);
+    if (line_count == 0){
+        return;
+    }
     i = 0;
-    while(line_count > 0 && !feof(fp)){
+    while(line_count > 0){
         while((c = fgetc(fp)) != '\n' ){
             buffer[i] = c;
             i++;
         }
+
       
     buffer[i] = '\0';
-    sscanf(buffer, "%s %d %s %s %s %s %s", msg_pend.utente, msg_pend.messaggi_pendenti, tmp1, tmp2, tmp3, tmp4, tmp5);
+    printf("buffer letto: %s\n", buffer);
+    sscanf(buffer, "%s %s %s %s %s %s %s", msg_pend.utente, tmpN, tmp1, tmp2, tmp3, tmp4, tmp5);
+
+    strcat(tmp5, "\0");
+    strcat(tmpN, "\0");
     //collasso tutti i tmp in un'unica stringa
     strcat(tmp1, " ");
     strcat(tmp1, tmp2);
@@ -669,14 +684,21 @@ void hanging_s(int socket){
     strcat(tmp1, tmp4);
     strcat(tmp1, " ");
     strcat(tmp1, tmp5);
-    strcpy(msg_pend.timestamp, tmp1);
+    strcat(tmp1, "\0");
     //invio prima username
     send(socket, (void*)&msg_pend.utente, sizeof(msg_pend.utente), 0);
-    //invio poi il numero di messaggi pendenti dopo aver serializzato
-    msg_t = htonl(msg_pend.messaggi_pendenti);
-    send(socket, (void*)&msg_t, sizeof(uint32_t), 0);
+    //invio poi il numero di messaggi
+    //send(socket, tmpN, sizeof(tmpN), 0);
+    printf("Debug: mi interessa %s\n", tmpN);
+    d = atoi(tmpN);
+    printf("Debug: count = %d\n", d);
+    count_t = htonl(d);
+    send(socket, (void*)&count_t, sizeof(uint32_t), 0);
+    d = ntohl(count_t);
+    printf("Debug: count dopo send = %d\n", d);
+
     //invio infine il timestamp
-    send(socket, (void*)&msg_pend.timestamp, sizeof(msg_pend.timestamp), 0);
+    send(socket, tmp1, sizeof(tmp1), 0);
     line_count--;
 
     //leggo il carattere successivo: se è EOF esco dal ciclo
@@ -690,8 +712,8 @@ void hanging_s(int socket){
 
     }
     fclose(fp);
-    fp = fopen(path, "w");
-    fclose(fp);
+    //fp = fopen(path, "w");
+    //fclose(fp);
 }
 
 
@@ -1038,9 +1060,9 @@ bool login_c(int code, struct credenziali credenziali, int sock, int port){
 //la funzione si occupa di stampare l'username, il numero di messaggi pendenti
 //e il timestamp del messassggio più recente
 void hanging_c(int code, int sock){
-    int ack, hang, i;
-    uint32_t msg_len, code_t, hang_t, count_hang_t;
-    struct messaggio_pendente mp;
+    char mittente[20], msg[20], timestamp[20];
+    int ack, hang, i, d = 0;
+    uint32_t msg_len, code_t, hang_t;
     
     system("clear");
     //serializzazione
@@ -1066,21 +1088,36 @@ void hanging_c(int code, int sock){
     recv(sock, (void*)&hang_t, sizeof(uint32_t), 0);
     hang = ntohl(hang_t);
 
+    if (hang == 0){
+        printf("Non hai messaggi pendenti\n");
+        return;
+    }
+    printf("Hai MESSAGGI PENDENTI da %d utenti:\n\n", hang);
+
     for(i = 0; i < hang; i++){
         //ricevo il nome dell'utente
-        recv(sock, (void*)&mp.utente, sizeof(&mp.utente), 0);
+        recv(sock, mittente, sizeof(mittente), 0);
 
-        //ricevo il numero di messaggi pendenti
-        recv(sock, (void*)&count_hang_t, sizeof(uint32_t), 0);
-        mp.messaggi_pendenti = ntohl(count_hang_t);
+        //ricevo il numero di messaggi pendenti 
+        //recv(sock, msg, sizeof(msg), 0);
+        code_t = 0;
+        d = 0;
+        recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
+        d = ntohl(code_t);
+        //d = 27;
+        printf("Debug: d = %d\n", d);
+        
 
         //ricevo il timestamp del messaggio
-        recv(sock, (void*)&mp.timestamp, sizeof(time_t), 0);
+        memset(timestamp, 0, sizeof(timestamp));
+        recv(sock, timestamp, sizeof(timestamp), 0);
+        timestamp[strlen(timestamp)] = '\0';
+        //aggiungo il terminatore di stringa
+        printf("Debug: timestamp = %s\n", timestamp);
 
-        printf(" %s ha inviato %d messaggi, il più recente è del %s\n\n", mp.utente, mp.messaggi_pendenti, ctime(&mp.timestamp));
+        printf("%s ha inviato %d messaggi, il più recente è del %s\n", mittente, d, timestamp);
 
     }
-    printf("Premi un tasto per tornare al menù principale\n");
 
 
 }
