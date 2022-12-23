@@ -6,7 +6,7 @@ char OWN_USER[USERN_CHAR];
 int main(int argc, char* argv[]){
     
     char command[MAXCMD], port[MAXPORT];
-    char buffer[BUFSIZE];
+    char buffer[BUFSIZE], tmpbuff[BUFSIZE+3];
     char username[USERN_CHAR], mittente[USERN_CHAR], *filename = NULL;
     int code, cl_socket;
     uint32_t server_com, cl_listener, ret, fdmax, i;
@@ -182,9 +182,15 @@ int main(int argc, char* argv[]){
                             fflush(stdin);
                             uint32_t code_t = htonl(MSG_CODE);
 
+                            strcpy(tmpbuff, "* : ");
+                            strcat(tmpbuff, buffer);
+
 
                             //chiamo una funzione che stampa il contenuto di un file
-                            append_msg_c( buffer, destinatari->username, OWN_USER);
+                            append_msg_c( tmpbuff, destinatari->username, OWN_USER);
+                            system("clear");
+                            print_chat(OWN_USER, destinatari->username);
+                            memset(tmpbuff, 0, sizeof(tmpbuff));
                             send(server_com, &code_t, sizeof(uint32_t), 0);
 
 
@@ -209,11 +215,12 @@ int main(int argc, char* argv[]){
                             while(tmp != NULL){
                                 struct sent_message *msg = malloc(sizeof(struct sent_message));
                                 int ack;
+
+                                strcpy(tmpbuff, "**: ");
+                                
                                 uint32_t code_t = htonl(MSG_CODE);
-                                strcpy(msg->utente, OWN_USER);
-                                strcpy(msg->messaggio, buffer);
-                                sprintf(path, "./%s/chat/%s.txt", OWN_USER, tmp->username);
-                                append_msg_c( buffer, tmp->username, OWN_USER);
+
+                                
                                 //invio codice
                                 a = send(tmp->socket , &code_t, sizeof(uint32_t), 0);
 
@@ -247,12 +254,19 @@ int main(int argc, char* argv[]){
                                 a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
 
                                 a = send(tmp->socket , buffer, BUFSIZE, 0);
+                                strcpy(tmpbuff, "**: ");
+                                strcat(tmpbuff, buffer);
+                                sprintf(path, "./%s/chat/%s.txt", OWN_USER, tmp->username);
+                                append_msg_c( tmpbuff, tmp->username, OWN_USER);
+                                system("clear");
+                                print_chat(OWN_USER, tmp->username);
                                 free(msg);
                                 // scorro la lista dei destinatari
                                 tmp = tmp->next;                        }
                                 continue;
                         }
-                    }
+                        continue;
+                    }   
 
                         fflush(stdin);
 
@@ -389,7 +403,9 @@ int main(int argc, char* argv[]){
                             
                                 append_msg_rcv(mittente, buffer, OWN_USER);
                             }
-                            else{
+                            if (in_chat == true){
+                                system("clear");
+                                print_chat(OWN_USER, mittente);
                             }
                         }
                     }
