@@ -20,6 +20,7 @@
 #define OUT_CODE        7
 #define MSG_CODE        90
 #define ADD_CODE        91
+#define GROUP_CODE      92
 
 #define HELP_CODE       11
 #define LIST_CODE       12

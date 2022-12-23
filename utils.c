@@ -1108,7 +1108,7 @@ void print_menu(char* OWN_USER){
 
 
 //funzione che aggiunge partecipanti alla chat di gruppo
-int add_partecipant(char* OWN_USER, int server_socket){
+int add_partecipant(char* OWN_USER, int server_socket, char* aggiunto){
     //lista destinatari
     struct destinatari *head = destinatari;
     uint32_t code_t;
@@ -1146,7 +1146,8 @@ int add_partecipant(char* OWN_USER, int server_socket){
         tmp--;
     }
     printf("Inserisci il nome dell'utente da aggiungere alla chat\n");
-    scanf("%s", partecipante);
+    scanf("%s", aggiunto);
+    strcpy(partecipante, aggiunto);
 
     //invio il nome dell'utente da aggiungere
     send(server_socket, partecipante, USERN_CHAR, 0);
@@ -1160,7 +1161,6 @@ int add_partecipant(char* OWN_USER, int server_socket){
         printf("Errore nell'aggiunta del partecipante\n");
         return -1;
     }
-    inserisci_destinatario(partecipante, 0);
 
     return tmp;
 
