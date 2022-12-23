@@ -35,5 +35,8 @@
         "random": "c",
         "queue": "c"
     },
-    "C_Cpp.errorSquiggles": "Disabled"
+    "C_Cpp.errorSquiggles": "Disabled",
+    "githubPullRequests.ignoredPullRequestBranches": [
+        "old-state"
+    ]
 }
