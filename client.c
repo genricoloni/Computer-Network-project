@@ -179,6 +179,29 @@ int main(int argc, char* argv[]){
                             print_menu(OWN_USER);
                             continue;
                         }
+                        if(strcmp(buffer, "/u\0") == 0){
+                            int tmp_port = add_partecipant(OWN_USER, server_com);
+                            //chiamo la funzione per aggiungere partecipanti alla chat
+                            if (tmp_port == -1){
+                                continue;
+                            }
+                            else{
+                                //qui ho la porta del client che voglio aggiungere alla chat
+                                //devo aggiungerlo alla lista dei destinatari
+                                //e devo aprire un socket per comunicare con lui
+
+                                //poi devo inviare tutta la lista dei miei destinatari alla lista stessa
+                                //in modo che tutti possano aggiungere i nuovi partecipanti
+                                //se già non lo hanno fatto
+
+
+                                
+
+
+                            }
+
+                            
+                        }
 
                         if(client_offline == false && chat_code == 0){
                             //devo inviare il messaggio al server
@@ -382,9 +405,10 @@ int main(int argc, char* argv[]){
                         
                     } else{
                         //è un messaggio da un client già connesso   
+                        uint32_t code_t;
 
                         memset(&buffer, 0, sizeof(buffer));
-                        ret = recv(i, mittente, USERN_CHAR, 0);
+                        ret = recv(i, code_t, sizeof(uint32_t), 0);
                         codeN = ntohl(code_t);
                         send(i, &code_t, sizeof(uint32_t), 0);
 
@@ -398,24 +422,50 @@ int main(int argc, char* argv[]){
                             close(i);
                             FD_CLR(i, &master);
                         } else{
-                            code_t = htonl(codeN);
-                            //printf("è un messaggio da un client già connesso\n");
-                            //ricevo messaggio da un client
-                            recv(i, mittente, USERN_CHAR, 0);
+                            if(codeN == CHAT_CODE){
+                                //printf("è un messaggio da un client già connesso\n");
+                                //ricevo messaggio da un client
+                                recv(i, mittente, USERN_CHAR, 0);
 
-                            send(i, &code_t, sizeof(uint32_t), 0);
+                                send(i, &code_t, sizeof(uint32_t), 0);
 
 
-                            recv(i, buffer, BUFSIZE, 0);
+                                recv(i, buffer, BUFSIZE, 0);
+
+                                //funzione che scrive nel file di chat il messaggio ricevuto
+                                if (in_group == false){
+                                
+                                    append_msg_rcv(mittente, buffer, OWN_USER);
+                                }
+                                if (in_chat == true){
+                                    system("clear");
+                                    print_chat(OWN_USER, mittente);
+                                }
                             
-                            //funzione che scrive nel file di chat il messaggio ricevuto
-                            if (in_group == false){
-                            
-                                append_msg_rcv(mittente, buffer, OWN_USER);
                             }
-                            if (in_chat == true){
-                                system("clear");
-                                print_chat(OWN_USER, mittente);
+                            if(codeN == ADD_CODE){
+                                struct sockaddr_in new_client_addr;
+                                int new_client_socket;
+                                //ricevo username del nuovo partecipante
+                                recv(i, mittente, USERN_CHAR, 0);
+
+                                //ricevo la porta del nuovo partecipante
+                                recv(i, &code_t, sizeof(uint32_t), 0);
+                                codeN = ntohl(code_t);
+
+                                //gestione struct e memoria
+                                memset(&new_client_addr, 0, sizeof(new_client_addr));
+                                new_client_addr.sin_family = AF_INET;
+                                new_client_addr.sin_port = htons(codeN);
+                                inet_pton(AF_INET, "127.0.0.1", &new_client_addr.sin_addr);
+                                new_client_socket = socket(AF_INET, SOCK_STREAM, 0);
+
+                                
+
+
+
+
+
                             }
                         }
                         continue;

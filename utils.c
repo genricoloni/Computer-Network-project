@@ -362,6 +362,39 @@ bool check_online(char *username){
     return false;
 }
 
+//la funzione manda la lista degli utenti online al client per poi inviare la porta del destinatario
+void add_s(int sock){
+    struct utenti_online *temp = utenti_online;
+    char buffer[100];
+    uint32_t msg_len, res_t;
+    int i = 0, res;
+
+    //invio ack
+    res = htonl(ACK);
+    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+    //invio il numero di utenti online
+    while(temp != NULL){
+        i++;
+        temp = temp->pointer;
+    }
+    res = htonl(i);
+    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+    temp = utenti_online;
+    while(temp != NULL){
+        //invio username
+        send(sock, (void*)temp->username, USERN_CHAR, 0);
+        //scorro la lista
+        temp = temp->pointer;
+    }
+
+    //ricevo il nome del nuovo partecipante e gli invio la porta
+    recv(sock, (void*)buffer, USERN_CHAR, 0);
+    res_t = htonl(get_port(buffer));
+    send(sock, (void*)&res_t, sizeof(uint32_t), 0);
+
+}
+
+
 /********************************************************************************************************/
 /*<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<<FUNZIONI DELLE OPERAZIONI DEL SERVER>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>*/
 /********************************************************************************************************/
@@ -1071,6 +1104,56 @@ void print_menu(char* OWN_USER){
     printf("4)share username file_name  -->condividi il file file_name con tutti gli utenti connessi\n");
     printf("5)out                       -->disconnetti l'utente\n");
 
+}
+
+
+//funzione che aggiunge partecipanti alla chat di gruppo
+int add_partecipant(char* OWN_USER, int server_socket){
+    uint32_t code_t;
+    int tmp;
+    char user[USERN_CHAR];
+    char partecipante[USERN_CHAR];
+
+    //invio al server il codice di operazione
+    system("clear");
+    printf("UTENTI ATTUALMENTE CONNESSI;\n");
+    code_t = htonl(ADD_CODE);
+    send(server_socket, (void*)&code_t, sizeof(uint32_t), 0);
+
+    //ricevo ack
+    recv(server_socket, (void*)&code_t, sizeof(uint32_t), 0);
+    
+
+    //ricevo il numero di utenti connessi
+    recv(server_socket, (void*)&code_t, sizeof(uint32_t), 0);
+    tmp = ntohl(code_t);
+
+    //ricevo la lista degli utenti connessi
+    while (tmp > 0){
+        recv(server_socket, user, USERN_CHAR, 0);
+        printf("%s\n", user);
+        tmp--;
+    }
+    printf("Inserisci il nome dell'utente da aggiungere alla chat\n");
+    scanf("%s", partecipante);
+
+    //invio il nome dell'utente da aggiungere
+    send(server_socket, partecipante, USERN_CHAR, 0);
+
+    //ricevo la porta del destinatario
+    recv(server_socket, (void*)&code_t, sizeof(uint32_t), 0);
+    tmp = ntohl(code_t);
+
+    //mi connetto al destinatario
+    if(tmp <= 0){
+        printf("Errore nell'aggiunta del partecipante\n");
+        return -1;
+    }
+    inserisci_destinatario(partecipante, 0);
+
+    return tmp;
+
+    //aggiungo alla lista di destinatari
 }
 
 

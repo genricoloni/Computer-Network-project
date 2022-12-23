@@ -155,6 +155,9 @@ int main(int argc, char* argv[]){
                             //diventerà pendente
                             msg_s(i);
                             break;
+                        case ADD_CODE:
+                            add_s(i);
+                            break;
                         
 
                         default:
