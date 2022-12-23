@@ -219,6 +219,7 @@ int main(int argc, char* argv[]){
                                 struct sent_message *msg = malloc(sizeof(struct sent_message));
                                 int ack;
 
+                                strcat(buffer, "   ");
                                 strcpy(tmpbuff, "**: ");
                                 
                                 uint32_t code_t = htonl(MSG_CODE);
@@ -388,7 +389,7 @@ int main(int argc, char* argv[]){
                         if(ret <= 0){
                             if(ret == 0){
                                 printf("Connessione chiusa da %s:%d\n", inet_ntoa(cl_listener_addr.sin_addr), ntohs(cl_listener_addr.sin_port));
-                                
+
                             } else{
                                 perror("Errore in fase di ricezione del messaggio");
                             }
