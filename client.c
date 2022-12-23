@@ -116,7 +116,6 @@ int main(int argc, char* argv[]){
        
         switch (code){
             case SIGNUP_CODE: 
-                printf("debug: dentro registrazione\n");           
                 reg = signup_c(code, credenziali, server_com);
                 su = reg;
                 //system("clear");
@@ -164,7 +163,6 @@ int main(int argc, char* argv[]){
                         //prendo in input il messaggio da inviare
                         fgets(buffer, 1024 - 1, stdin);
                         buffer[strlen(buffer) - 1] = '\0';
-                        printf("debug: %s\n", buffer);
                         //controllo se il messaggio è un comando
                         if(strcmp(buffer, "/q\0") == 0){
                             in_chat = false;
@@ -214,7 +212,6 @@ int main(int argc, char* argv[]){
                                 uint32_t code_t = htonl(MSG_CODE);
                                 strcpy(msg->utente, OWN_USER);
                                 strcpy(msg->messaggio, buffer);
-                                //printf("debug: invio messaggio a %s\n", destinatari->username);
                                 sprintf(path, "./%s/chat/%s.txt", OWN_USER, tmp->username);
                                 append_msg_c( buffer, tmp->username, OWN_USER);
                                 //invio codice
@@ -278,8 +275,6 @@ int main(int argc, char* argv[]){
                             //prelevo username dal buffer
                             //sscanf(buffer, "%s %s", command, username);
                             show_c(code, username, server_com, OWN_USER);
-                            system("clear");
-                            print_chat(OWN_USER, username);
                             wait();
                             system("clear");
                             print_menu(OWN_USER);
@@ -370,7 +365,6 @@ int main(int argc, char* argv[]){
                         code = ntohl(code_t);
                         send(i, &code_t, sizeof(uint32_t), 0);
 
-                        printf("debug:  ricevuto  %d\n", code);
                         if(ret <= 0){
                             if(ret == 0){
                                 printf("Connessione chiusa da %s:%d\n", inet_ntoa(cl_listener_addr.sin_addr), ntohs(cl_listener_addr.sin_port));
@@ -384,13 +378,11 @@ int main(int argc, char* argv[]){
                             //printf("è un messaggio da un client già connesso\n");
                             //ricevo messaggio da un client
                             recv(i, mittente, USERN_CHAR, 0);
-                            //printf("debug: messaggio ricevuto da %s con rcv che vale %d\n", mittente, a);
 
                             send(i, &code_t, sizeof(uint32_t), 0);
 
 
                             recv(i, buffer, BUFSIZE, 0);
-                            printf("debug: messaggio ricevuto %s\n", mittente);
                             
                             //funzione che scrive nel file di chat il messaggio ricevuto
                             if (in_group == false){
@@ -398,7 +390,6 @@ int main(int argc, char* argv[]){
                                 append_msg_rcv(mittente, buffer, OWN_USER);
                             }
                             else{
-                                printf("Debug: chat di gruppo\n");
                             }
                         }
                     }

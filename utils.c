@@ -634,7 +634,6 @@ void hanging_s(int socket){
     strcat(path, username);
     strcat(path, "/chat/pendenti.txt");
 
-    printf("Debug hanging: %s\n", path);
 
     //apro il file
     fp = fopen(path, "r");
@@ -706,14 +705,13 @@ void show_s(int socket){
     //invio ack
     code_t = htonl(ACK);
     send(socket, (void*)&code_t, sizeof(uint32_t), 0);
-    printf("Debug: ack della show inviato\n");
 
     //attendo ricezione del nome del mittente
     memset(mittente, 0, USERN_CHAR);
     recv(socket, mittente, sizeof(mittente), 0);
-    printf("Debug: mittente ricevuto %s\n", mittente);
 
     //controllo che il mittente sia un utente registrato
+
 
 
     //costruisco il path del file che è del tipo ./sources_s/client/chat/mittente.txt
@@ -723,11 +721,9 @@ void show_s(int socket){
     strcat(path, mittente);
     strcat(path, ".txt");
 
-    printf("Debug path show: %s\n", path);
 
     //controllo che il file esista
     if(access(path, F_OK) == -1){
-        printf("Debug: file non esiste\n");
         code_t = htonl(0);
         send(socket, (void*)&code_t, sizeof(uint32_t), 0);
         return;
@@ -756,7 +752,6 @@ void show_s(int socket){
             i++;
         }
         buffer[i] = '\0';
-        printf("Debug: letto %s\n", buffer);
 
         //invio la riga al client
         send(socket, buffer, sizeof(buffer), 0);
@@ -774,7 +769,6 @@ void show_s(int socket){
         memset(buffer, 0, BUFSIZE);
     }
 
-    printf("Debug: messaggi inviati\n");
     fclose(fp);
     //cancello il file
     //cancello anche la entry relativa a mittente nel file pendenti.txt
@@ -791,7 +785,6 @@ void show_s(int socket){
 
     fclose(fp);
     fp = fopen(path2, "r");
-    printf("Debug: line count %d\n", line_count);
     fp2 = fopen("./sources_s/temp.txt", "w");
     
     while(line_count>0){
@@ -804,11 +797,9 @@ void show_s(int socket){
         sscanf(buffer, "%s", tmp_mitt);
         //aggiungo il carattere di fine stringa
         tmp_mitt[strlen(tmp_mitt)] = '\0';
-        printf("Debug: letto %s\n", tmp_mitt);
 
         if(strcmp(tmp_mitt, mittente) != 0){
             fprintf(fp2, "%s\n", buffer);
-            printf("Debug: scritto %s\n", buffer);
         }
         //leggo il carattere successivo: se è EOF esco dal ciclo
         c = fgetc(fp);
@@ -822,7 +813,6 @@ void show_s(int socket){
     }
     fclose(fp);
     fclose(fp2);
-    printf("Debug: rinomino file tmp in %s\n", path2);
     rename("./sources_s/temp.txt", path2);
     remove(path);
 
@@ -1118,7 +1108,6 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
     ack = ntohl(code_t);
-    printf("Debug: ack = %d\n", ack);
     if(ack == ALRDY_REG )
         return true;
     
@@ -1213,7 +1202,6 @@ void hanging_c(int code, int sock){
         memset(buffer, 0, sizeof(BUFSIZE));
         recv(sock, buffer, sizeof(buffer), 0);
         buffer[strlen(buffer)] = '\0';
-        printf("Debug: buffer = %s\n", buffer);
 
         sscanf(buffer, "%s %d %s", mittente, &d, timestamp);
         strncpy(timestamp, buffer + strlen(mittente) + sizeof(d)-1, strlen(buffer) - strlen(mittente) - sizeof(d)-1);
@@ -1242,14 +1230,11 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
     code_t = htonl(code);
 
     //invio del codice al server
-    printf("Debug: invio codice show\n");
     send(sock, (void*)&code_t, msg_len, 0);
-    printf("Debug: inviato codice show\n");
 
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
     ack = ntohl(code_t);
-    printf("Debug: ricevuto ack\n");
 
     
     if(ack != ACK){
@@ -1259,7 +1244,6 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
 
     //invio il nome dell'utente
     strcat(mittente, "\0");
-    printf("Debug: invio nome utente %s\n", mittente);
     send(sock, mittente, sizeof(mittente), 0);
 
     //ricevo il numero di messaggi
@@ -1267,7 +1251,7 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
     count_msg = ntohl(count_msg_t);
 
 
-    printf("Debug: ricevuto numero messaggi %d\n", count_msg);
+    system("clear");
 
     if(count_msg == 0){
         printf("Non hai messaggi pendenti da %s\n", utente);
@@ -1275,6 +1259,10 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
     }
 
     //apro il file di chat che ha percorso ./OWN_USER/chat/utente
+
+    //stampo i messaggi vecchi
+    print_chat(OWN_USER, mittente);
+
     strcpy(path, "./");
     strcat(path, OWN_USER);
     strcat(path, "/chat/");
@@ -1282,7 +1270,7 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
     strcat(path, ".txt");
 
     fp = fopen(path, "a");
-
+    printf("<<<<<<MESSAGGI NON LETTI>>>>>>\n");
     for(i = 0; i < count_msg; i++)
     {
         char tmp[BUFSIZE+3];
@@ -1292,14 +1280,8 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
         buffer[strlen(buffer)] = '\0';
         strcpy(tmp, "R: ");
         strcat(tmp, buffer);
-        printf("Debug: ricevuto = %s\n", tmp);
         fprintf(fp, "%s\n", tmp);
-
-
-
-
-        //scrivo il messaggio nel file di chat
-
+        printf("%s\n", tmp);
     }
 
     fclose(fp);
