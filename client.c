@@ -281,6 +281,8 @@ int main(int argc, char* argv[]){
                             system("clear");
                             print_chat(OWN_USER, username);
                             wait();
+                            system("clear");
+                            print_menu(OWN_USER);
                             break;
 
                         case CHAT_CODE:

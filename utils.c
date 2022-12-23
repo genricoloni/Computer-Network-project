@@ -573,7 +573,7 @@ void append_msg_s(char *mittente, char* destinatario, char *msg){
     }
 
     //scrivo il messaggio nel file
-    fprintf(fp, "%s \n", msg);
+    fprintf(fp, "%s\n", msg);
     fclose(fp);
     
     //gestisco il file riepilogativo dei messaggi pendenti relativi al destinatario
@@ -693,7 +693,8 @@ void hanging_s(int socket){
 void show_s(int socket){
     char mittente[USERN_CHAR], client[USERN_CHAR];
     char path[100], path2[100], buffer[BUFSIZE];
-    int i, line_count = 0, c, ack;
+    char tmp_mitt[USERN_CHAR];
+    int i, line_count = 0, c;
     uint32_t count_t, code_t;
     FILE *fp;
     FILE *fp2;
@@ -762,6 +763,7 @@ void show_s(int socket){
         line_count--;
 
         //leggo il carattere successivo: se è EOF esco dal ciclo
+        i = 0;
         c = fgetc(fp);
         if(c == EOF){
             break;
@@ -782,10 +784,11 @@ void show_s(int socket){
     fp = fopen(path2, "r");
     
     i = 0;
-    while((c = fgetc(fp)) != EOF)
+    while((c = fgetc(fp)) != EOF){
         if(c == '\n'){
             line_count++;
-        }
+        }}
+
     fclose(fp);
     fp = fopen(path2, "r");
     printf("Debug: line count %d\n", line_count);
@@ -794,15 +797,18 @@ void show_s(int socket){
     while(line_count>0){
         while((c = fgetc(fp)) != '\n' ){
             buffer[i] = c;
+
             i++;
         }
-        char tmp_mitt[USERN_CHAR];
         buffer[i] = '\0';
         sscanf(buffer, "%s", tmp_mitt);
+        //aggiungo il carattere di fine stringa
+        tmp_mitt[strlen(tmp_mitt)] = '\0';
         printf("Debug: letto %s\n", tmp_mitt);
 
         if(strcmp(tmp_mitt, mittente) != 0){
             fprintf(fp2, "%s\n", buffer);
+            printf("Debug: scritto %s\n", buffer);
         }
         //leggo il carattere successivo: se è EOF esco dal ciclo
         c = fgetc(fp);
@@ -816,7 +822,9 @@ void show_s(int socket){
     }
     fclose(fp);
     fclose(fp2);
-    rename("./sources_s/temp.txt", path);
+    printf("Debug: rinomino file tmp in %s\n", path2);
+    rename("./sources_s/temp.txt", path2);
+    remove(path);
 
     }
     
@@ -1257,7 +1265,14 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
     //ricevo il numero di messaggi
     recv(sock, (void*)&count_msg_t, sizeof(uint32_t), 0);
     count_msg = ntohl(count_msg_t);
+
+
     printf("Debug: ricevuto numero messaggi %d\n", count_msg);
+
+    if(count_msg == 0){
+        printf("Non hai messaggi pendenti da %s\n", utente);
+        return;
+    }
 
     //apro il file di chat che ha percorso ./OWN_USER/chat/utente
     strcpy(path, "./");
