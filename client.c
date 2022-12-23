@@ -8,7 +8,7 @@ int main(int argc, char* argv[]){
     char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE], tmpbuff[BUFSIZE+3];
     char username[USERN_CHAR], mittente[USERN_CHAR], *filename = NULL;
-    int code, cl_socket, codeN;
+    int code, cl_socket, codeN, chat_code;
     uint32_t server_com, cl_listener, ret, fdmax, i;
     uint32_t addrlen, code_t;
     char path[100];
@@ -180,7 +180,7 @@ int main(int argc, char* argv[]){
                             continue;
                         }
 
-                        if(client_offline == false && code == 0){
+                        if(client_offline == false && chat_code == 0){
                             //devo inviare il messaggio al server
                             fflush(stdin);
                             uint32_t code_t = htonl(MSG_CODE);
@@ -210,7 +210,7 @@ int main(int argc, char* argv[]){
                             continue;
                         }
 
-                        if(client_offline == true && code > 0){
+                        if(client_offline == true && chat_code > 0){
                             int a;
                             //devo inviare il messaggio al client
 
@@ -228,7 +228,9 @@ int main(int argc, char* argv[]){
                                 //invio codice
                                 a = send(tmp->socket , &code_t, sizeof(uint32_t), 0);
 
-                                if (a < 0){
+                                a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
+
+                                if (a <= 0){
                                     client_offline = false;
                                     if (in_group == false){
                                         printf("Client disconnesso inaspettatatamente: rinviare il messaggio\n");
@@ -236,8 +238,10 @@ int main(int argc, char* argv[]){
                                         //non sono in una chat di gruppo
                                         //rimuovo il destinatario dalla lista
                                         //e aggiungo il server alla lista
+                                        inserisci_destinatario(tmp->username, server_com);
                                         rimuovi_destinatario(tmp->username);
-                                        inserisci_destinatario("server", server_com);
+                                        client_offline = false;
+                                        chat_code = 0;
                                         break;
 
                                     }
@@ -249,8 +253,6 @@ int main(int argc, char* argv[]){
                                         break;
                                     }
                                 }
-
-                                a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
 
                                 a = send(tmp->socket , OWN_USER, USERN_CHAR, 0);
                                 //ricevo ack
@@ -300,16 +302,16 @@ int main(int argc, char* argv[]){
                             break;
 
                         case CHAT_CODE:
-                            code = chat_init_c(code, username, server_com);
+                            chat_code = chat_init_c(code, username, server_com);
                             //gestione struct e memoria
                             fflush(stdin);
 
-                            if (code == -1){
+                            if (chat_code == -1){
                                 client_offline = false;
                                 printf("L'utente non esiste\n");
                                 break;
                             }
-                            if (code == 0){
+                            if (chat_code == 0){
                                 client_offline = false;
                                 //system("clear");
                                 //sprintf(path, "./%s/chat/%s", OWN_USER, destinatari->username);
@@ -328,7 +330,7 @@ int main(int argc, char* argv[]){
                             printf("CHAT CON %s\n", username);
                             memset(&client_addr, 0, sizeof(client_addr));
                             client_addr.sin_family = AF_INET;
-                            client_addr.sin_port = htons(code);
+                            client_addr.sin_port = htons(chat_code);
                             inet_pton(AF_INET, "127.0.0.1", &client_addr.sin_addr);
                             cl_socket = socket(AF_INET, SOCK_STREAM, 0);
 
