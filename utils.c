@@ -689,7 +689,76 @@ void hanging_s(int socket){
 }
 
 
+//funzione che si occupa dell'invio al client dei messaggi pendenti a suo carico
+void show_s(int socket){
+    char mittente[USERN_CHAR], client[USERN_CHAR];
+    char path[100], buffer[BUFSIZE];
+    int i, line_count = 0, c, ack;
+    uint32_t count_t, code_t;
+    FILE *fp;
 
+    strcpy(client, get_username(socket));
+
+    //invio ack
+    code_t = htonl(ACK);
+    send(socket, (void*)&code_t, sizeof(uint32_t), 0);
+    printf("Debug: ack della show inviato\n");
+
+    //attendo ricezione del nome del mittente
+    recv(socket, (void*)&mittente, sizeof(mittente), 0);
+
+    //costruisco il path del file che è del tipo ./sources_s/client/chat/mittente.txt
+    strcpy(path, "./sources_s/");
+    strcat(path, client);
+    strcat(path, "/chat/");
+    strcat(path, mittente);
+    strcat(path, ".txt");
+
+    printf("Debug path show: %s\n", path);
+
+    //apro il file e conto le righe, che sono il numero di messaggi
+    fp = fopen(path, "r");
+    while((c = fgetc(fp)) != EOF){
+        if(c == '\n')
+            line_count++;
+    }
+    fclose(fp);
+    //invio il numero di messaggi
+    count_t = htonl(line_count);
+    send(socket, (void*)&count_t, sizeof(uint32_t), 0);
+
+    //apro il file
+    fp = fopen(path, "r");
+    i = 0;
+    while(line_count > 0){
+        while((c = fgetc(fp)) != '\n' ){
+            buffer[i] = c;
+            i++;
+        }
+        buffer[i] = '\0';
+
+        //invio la riga al client
+        send(socket, buffer, sizeof(buffer), 0);
+        line_count--;
+
+        //leggo il carattere successivo: se è EOF esco dal ciclo
+        c = fgetc(fp);
+        if(c == EOF){
+            break;
+        }
+        //altrimenti porto indietro il cursore di un carattere
+        else 
+            fseek(fp, -1, SEEK_CUR);
+        memset(buffer, 0, BUFSIZE);
+    }
+    fclose(fp);
+    // cancello il file
+    //remove(path);
+
+
+
+
+}
 
 
 //funzione che si occupa di gestire i messaggi pendenti in arrivo per un utente
@@ -1090,11 +1159,11 @@ void hanging_c(int code, int sock){
 
 //funzione che richiede al server tutti i messaggi riferiti al client da un utente specifico
 //i messaggi vengono memorizzati nel file di chat tra i due utenti
-void show_c(int code, char *utente, int sock){
+void show_c(int code, char *utente, int sock, char* OWN_USER){
     int ack, count_msg, i;
     uint32_t msg_len, code_t, count_msg_t;
     FILE *fp;
-    char path[100];
+    char path[100], buffer[BUFSIZE];
 
 
     msg_len = sizeof(uint32_t);
@@ -1107,6 +1176,7 @@ void show_c(int code, char *utente, int sock){
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
     ack = ntohl(code_t);
+    printf("Debug: ricevuto ack\n");
 
     
     if(ack != ACK){
@@ -1121,13 +1191,27 @@ void show_c(int code, char *utente, int sock){
     recv(sock, (void*)&count_msg_t, sizeof(uint32_t), 0);
     count_msg = ntohl(count_msg_t);
 
-    //apro il file di chat
-    //sprintf(path, "%s_%s", cred.username, utente);
+    //apro il file di chat che ha percorso ./OWN_USER/chat/utente
+    strcpy(path, "./");
+    strcat(path, OWN_USER);
+    strcat(path, "/chat/");
+    strcat(path, utente);
+
     fp = fopen(path, "a");
 
     for(i = 0; i < count_msg; i++)
     {
+        char tmp[BUFSIZE+3];
         //ricevo il messaggio
+        memset(buffer, 0, sizeof(BUFSIZE));
+        recv(sock, buffer, sizeof(buffer), 0);
+        buffer[strlen(buffer)] = '\0';
+        strcpy(tmp, "R: ");
+        strcat(tmp, buffer);
+        printf("Debug: ricevuto = %s\n", tmp);
+        fprintf(fp, "%s\n", tmp);
+
+
 
 
         //scrivo il messaggio nel file di chat

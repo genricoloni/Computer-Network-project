@@ -277,7 +277,8 @@ int main(int argc, char* argv[]){
                         case SHOW_CODE:
                             //prelevo username dal buffer
                             //sscanf(buffer, "%s %s", command, username);
-                            show_c(code, username, server_com);
+                            show_c(code, username, server_com, OWN_USER);
+                            print_chat(OWN_USER, username);
                             break;
 
                         case CHAT_CODE:
