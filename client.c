@@ -8,7 +8,7 @@ int main(int argc, char* argv[]){
     char command[MAXCMD], port[MAXPORT];
     char buffer[BUFSIZE], tmpbuff[BUFSIZE+3];
     char username[USERN_CHAR], mittente[USERN_CHAR], *filename = NULL;
-    int code, cl_socket;
+    int code, cl_socket, codeN;
     uint32_t server_com, cl_listener, ret, fdmax, i;
     uint32_t addrlen, code_t;
     char path[100];
@@ -212,6 +212,7 @@ int main(int argc, char* argv[]){
                             fflush(stdin);
                             continue;
                         }
+
                         if(client_offline == true && code > 0){
                             int a;
                             printf("In fase di invio del messaggio\n");
@@ -276,7 +277,12 @@ int main(int argc, char* argv[]){
                                 tmp = tmp->next;                        }
                                 continue;
                         }
-                        continue;
+                        printf("Questo non dovrei mai vederlo\n");
+                        if(client_offline == true)
+                            printf("Client offline = true\n");
+                        else
+                            printf("Client offline = false\n");
+                        printf("Debug: code = %d\n", code);
                     }   
 
                         fflush(stdin);
@@ -391,7 +397,7 @@ int main(int argc, char* argv[]){
 
                         memset(&buffer, 0, sizeof(buffer));
                         ret = recv(i, mittente, USERN_CHAR, 0);
-                        code = ntohl(code_t);
+                        codeN = ntohl(code_t);
                         send(i, &code_t, sizeof(uint32_t), 0);
 
                         if(ret <= 0){
@@ -403,7 +409,7 @@ int main(int argc, char* argv[]){
                             close(i);
                             FD_CLR(i, &master);
                         } else{
-                            code_t = htonl(code);
+                            code_t = htonl(codeN);
                             //printf("è un messaggio da un client già connesso\n");
                             //ricevo messaggio da un client
                             recv(i, mittente, USERN_CHAR, 0);
