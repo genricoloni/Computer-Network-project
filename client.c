@@ -198,7 +198,7 @@ int main(int argc, char* argv[]){
                                 //forzare l'entrata in chat del nuovo partecipante
                                 //aggiungere il nuovo partecipante alla lista dei destinatari
                                 //approccio marco o approccio enrico?
-
+                                continue;
 
                             }
 

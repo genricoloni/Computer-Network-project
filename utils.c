@@ -1109,6 +1109,8 @@ void print_menu(char* OWN_USER){
 
 //funzione che aggiunge partecipanti alla chat di gruppo
 int add_partecipant(char* OWN_USER, int server_socket){
+    //lista destinatari
+    struct destinatari *head = destinatari;
     uint32_t code_t;
     int tmp;
     char user[USERN_CHAR];
@@ -1131,7 +1133,16 @@ int add_partecipant(char* OWN_USER, int server_socket){
     //ricevo la lista degli utenti connessi
     while (tmp > 0){
         recv(server_socket, user, USERN_CHAR, 0);
-        printf("%s\n", user);
+        //controllo se user è già nella lista destinatari
+        while(head != NULL){
+            if(strcmp(head->username, user) == 0 || strcmp(user, OWN_USER) == 0){
+                break;
+            }
+            head = head->next;
+        }
+        if(head == NULL){
+            printf("%s\n", user);
+        }
         tmp--;
     }
     printf("Inserisci il nome dell'utente da aggiungere alla chat\n");
