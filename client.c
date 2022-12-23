@@ -278,7 +278,9 @@ int main(int argc, char* argv[]){
                             //prelevo username dal buffer
                             //sscanf(buffer, "%s %s", command, username);
                             show_c(code, username, server_com, OWN_USER);
+                            system("clear");
                             print_chat(OWN_USER, username);
+                            wait();
                             break;
 
                         case CHAT_CODE:

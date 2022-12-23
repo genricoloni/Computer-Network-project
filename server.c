@@ -142,7 +142,8 @@ int main(int argc, char* argv[]){
                             break;
 
                         case SHOW_CODE:
-                            //show_s(i, &utenti_online);
+                            printf("Debug: SHOW_CODE\n");
+                            show_s(i);
                             break;
                         
                         case CHAT_CODE:
