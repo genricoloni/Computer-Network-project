@@ -195,7 +195,9 @@ int main(int argc, char* argv[]){
                                 //se già non lo hanno fatto
 
 
-                                
+                                //forzare l'entrata in chat del nuovo partecipante
+                                //aggiungere il nuovo partecipante alla lista dei destinatari
+                                //approccio marco o approccio enrico?
 
 
                             }
@@ -239,13 +241,12 @@ int main(int argc, char* argv[]){
 
                             //invio il messaggio a tutti i destinatari
                             while(tmp != NULL){
-                                struct sent_message *msg = malloc(sizeof(struct sent_message));
                                 int ack;
 
                                 strcat(buffer, "   ");
                                 strcpy(tmpbuff, "**: ");
                                 
-                                uint32_t code_t = htonl(MSG_CODE);
+                                uint32_t code_t = htonl(CHAT_CODE);
 
                                 
                                 //invio codice
@@ -291,11 +292,11 @@ int main(int argc, char* argv[]){
                                 append_msg_c( tmpbuff, tmp->username, OWN_USER);
                                 system("clear");
                                 print_chat(OWN_USER, tmp->username);
-                                free(msg);
                                 // scorro la lista dei destinatari
                                 tmp = tmp->next;                        }
                                 continue;
                         }
+                        
                     }   
 
                         fflush(stdin);
@@ -394,6 +395,7 @@ int main(int argc, char* argv[]){
                 } else{
                     if(i == cl_listener){
                         //è una nuova connessione
+                        //if (in_group == true)
                         addrlen = sizeof(gp_addr);
                         ret = accept(i, (struct sockaddr*)&gp_addr, (socklen_t*)&addrlen);
 
@@ -408,8 +410,9 @@ int main(int argc, char* argv[]){
                         uint32_t code_t;
 
                         memset(&buffer, 0, sizeof(buffer));
-                        ret = recv(i, code_t, sizeof(uint32_t), 0);
+                        ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);
                         codeN = ntohl(code_t);
+                        printf("codeN: %d\n", codeN);
                         send(i, &code_t, sizeof(uint32_t), 0);
 
                         if(ret <= 0){

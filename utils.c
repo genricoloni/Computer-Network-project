@@ -366,18 +366,18 @@ bool check_online(char *username){
 void add_s(int sock){
     struct utenti_online *temp = utenti_online;
     char buffer[100];
-    uint32_t msg_len, res_t;
-    int i = 0, res;
+    uint32_t res_t;
+    int i = 0;
 
     //invio ack
-    res = htonl(ACK);
+    res_t = htonl(ACK);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     //invio il numero di utenti online
     while(temp != NULL){
         i++;
         temp = temp->pointer;
     }
-    res = htonl(i);
+    res_t = htonl(i);
     send(sock, (void*)&res_t, sizeof(uint32_t), 0);
     temp = utenti_online;
     while(temp != NULL){
