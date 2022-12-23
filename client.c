@@ -165,7 +165,6 @@ int main(int argc, char* argv[]){
                         //prendo in input il messaggio da inviare
                         fgets(buffer, 1024 - 1, stdin);
                         buffer[strlen(buffer) - 1] = '\0';
-                        printf("Sto inviandoil messaggio\n");
 
                         //controllo se il messaggio è un comando
                         if(strcmp(buffer, "/q\0") == 0){
@@ -180,10 +179,8 @@ int main(int argc, char* argv[]){
                             print_menu(OWN_USER);
                             continue;
                         }
-                        printf("Prima dellaa biforcazione tra client e server\n");
 
                         if(client_offline == false && code == 0){
-                            printf("Debug: client offline\n");
                             //devo inviare il messaggio al server
                             fflush(stdin);
                             uint32_t code_t = htonl(MSG_CODE);
@@ -215,7 +212,6 @@ int main(int argc, char* argv[]){
 
                         if(client_offline == true && code > 0){
                             int a;
-                            printf("In fase di invio del messaggio\n");
                             //devo inviare il messaggio al client
 
                             //invio il messaggio a tutti i destinatari
@@ -260,16 +256,13 @@ int main(int argc, char* argv[]){
 
                                 a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
 
-                                printf("ACK: %d\n", ack);
 
                                 a = send(tmp->socket , buffer, BUFSIZE, 0);
 
-                                printf("Messaggio inviato con ret = %d\n", a);
                                 strcpy(tmpbuff, "**: ");
                                 strcat(tmpbuff, buffer);
                                 sprintf(path, "./%s/chat/%s.txt", OWN_USER, tmp->username);
                                 append_msg_c( tmpbuff, tmp->username, OWN_USER);
-                                printf("Messaggio scritto nel file di chat\n");
                                 system("clear");
                                 print_chat(OWN_USER, tmp->username);
                                 free(msg);
@@ -277,18 +270,11 @@ int main(int argc, char* argv[]){
                                 tmp = tmp->next;                        }
                                 continue;
                         }
-                        printf("Questo non dovrei mai vederlo\n");
-                        if(client_offline == true)
-                            printf("Client offline = true\n");
-                        else
-                            printf("Client offline = false\n");
-                        printf("Debug: code = %d\n", code);
                     }   
 
                         fflush(stdin);
 
                     //è un comando dallo stdin
-                    printf("è un comando\n");
                     memset(&buffer, 0, sizeof(buffer));
                     memset(&command, 0, sizeof(command));
                     memset(&username, 0, sizeof(username));
@@ -393,7 +379,6 @@ int main(int argc, char* argv[]){
                         
                     } else{
                         //è un messaggio da un client già connesso   
-                        printf("è un messaggio da un client già connesso\n");
 
                         memset(&buffer, 0, sizeof(buffer));
                         ret = recv(i, mittente, USERN_CHAR, 0);
@@ -403,6 +388,7 @@ int main(int argc, char* argv[]){
                         if(ret <= 0){
                             if(ret == 0){
                                 printf("Connessione chiusa da %s:%d\n", inet_ntoa(cl_listener_addr.sin_addr), ntohs(cl_listener_addr.sin_port));
+                                
                             } else{
                                 perror("Errore in fase di ricezione del messaggio");
                             }
