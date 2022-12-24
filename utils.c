@@ -201,6 +201,16 @@ void rimuovi_tutti_destinatari(){
     }
 }
 
+//funzione che mi dice se un username dato è già presente nella lista dei destinatari
+bool check_presenza_destinatario(char *Username){
+    struct destinatari *temp = destinatari;
+    while(temp != NULL){
+        if(strcmp(temp->username, Username) == 0) return true;
+        temp = temp->next;
+    }
+    return false;
+}
+
 
 
 /********************************************************************************************************/

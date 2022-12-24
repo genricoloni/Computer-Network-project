@@ -226,12 +226,24 @@ int main(int argc, char* argv[]){
                             {
                                 //gli invio il codice di aggiunta partecipante
                                 code_t = htonl(GROUP_CODE);
-                                if(tmp->socket == tmp_sock)
-                                    printf("Socket uguale, sto inviando a giulia\n");
+                            
                                 send(tmp->socket, &code_t, sizeof(uint32_t), 0);
 
-                                //recv(tmp->socket, &code_t, sizeof(uint32_t), 0);
-                                //printf("Debug: ricevuto codice %d\n", ntohl(code_t));
+                                //verifico che il client mi abbia già tra i suoi destinatari
+                                //invio il mio username
+                                send(tmp->socket, &OWN_USER, sizeof(mittente), 0);
+
+                                //ricevo codice
+                                recv(tmp->socket, &code_t, sizeof(uint32_t), 0);
+                                if(ntohl(code_t) == ACK){
+                                    printf("Debug: il client %s non mi ha tra i suoi destinatari\n", tmp->username);
+                                    //gli invio la mia porta
+                                    code_t = htonl(atoi(argv[1]));
+                                    send(tmp->socket, &code_t, sizeof(uint32_t), 0);
+                                }
+                                else{
+                                    printf("Debug: il client %s mi ha già tra i suoi destinatari\n", tmp->username);
+                                }
 
                                 //gli invio username username del nuovo partecipante
                                 printf("Debug: invio username %s\n", username);
@@ -312,15 +324,23 @@ int main(int argc, char* argv[]){
                                         rimuovi_destinatario(tmp->username);
                                         client_offline = false;
                                         chat_code = 0;
-                                        break;
 
                                     }
                                     else{
                                         //sono in una chat di gruppo
                                         //rimuovo il destinatario dalla lista
-                                        rimuovi_destinatario(tmp->username);
                                         printf("Sembra che il client %s sia disconnesso, non riceverà più i messaggi da questa chat di gruppo\n", tmp->username);
-                                        break;
+                                        rimuovi_destinatario(tmp->username);
+                                        if(destinatari == NULL){
+                                            printf("Non ci sono più destinatari, la chat di gruppo è terminata\n");
+                                            in_group = false;
+                                            chat_code = 0;
+                                            break;
+                                        }
+                                        continue;
+
+
+                                        
                                     }
                                 }
 
@@ -477,13 +497,51 @@ int main(int argc, char* argv[]){
                         } else{
                             
                             if (codeN == GROUP_CODE){
-                                in_chat = true;
-                                in_group = true;
-                                client_offline = true;
-                                code = 1;
+                                
 
                             
                                 printf("dentro group_code\n");
+
+                                //ricevo username mittente
+                                printf("Ricevo username mittente\n");
+                                recv(i, mittente, sizeof(mittente), 0);
+
+                                //controllo se il mittente è già nella lista dei destinatari
+                                
+                                if(in_chat == false){
+                                    //invio ack al mittente
+                                    printf("Invio ack al mittente\n");
+                                    code_t = htonl(ACK);
+                                    send(i, (void*)&code_t, sizeof(uint32_t), 0);
+
+                                    //ricevo la porta
+                                    printf("Ricevo porta mittente\n");
+                                    recv(i, (void*)&code_t, sizeof(uint32_t), 0);
+                                    printf("Ricevuta %d\n", ntohl(code_t));
+                                    codeN = ntohl(code_t);
+                                    
+                                    //gestione memoriaa e struttura indirizzi
+                                    memset(&client_addr, 0, sizeof(client_addr));
+                                    client_addr.sin_family = AF_INET;
+                                    client_addr.sin_port = htons(codeN);
+                                    inet_pton(AF_INET, "127.0.0.1", &client_addr.sin_addr);
+                                    cl_socket = socket(AF_INET, SOCK_STREAM, 0);
+                                    ret = connect(cl_socket, (struct sockaddr*)&client_addr, sizeof(client_addr));
+                                    inserisci_destinatario(mittente, cl_socket);
+                                    printf("Inserito %s nella lista dei destinatari\n", mittente);
+
+                                }
+                                else{
+                                    //invio nack al mittente
+                                    printf("Invio nack al mittente\n");
+                                    code_t = htonl(0);
+                                    send(i, (void*)&code_t, sizeof(uint32_t), 0);
+                                }
+                                in_chat = true;
+                                in_group = true;
+                                client_offline = true;
+                                chat_code = 1;
+
 
                                 printf("Ricevo username nuovo partecipante\n");
                                 recv(i, mittente, sizeof(mittente), 0);
@@ -509,7 +567,7 @@ int main(int argc, char* argv[]){
                                 ret = connect(new_client_socket, (struct sockaddr*)&new_client_addr, sizeof(new_client_addr));
 
                                 inserisci_destinatario(mittente, new_client_socket);
-                                printf("Inserito destinatario %s\n", destinatari->username);
+                                printf("Inserito nuovo destinatario %s\n", destinatari->username);
 
                                 //invio add code al nuovo client
                                 codeN = htonl(ADD_CODE);
@@ -561,7 +619,7 @@ int main(int argc, char* argv[]){
                                 in_chat = true;
                                 in_group = true;
                                 client_offline = true;
-                                code = 1;
+                                chat_code = 1;
                                 //ricevo username del nuovo partecipante
                                 recv(i, mittente, USERN_CHAR, 0);
 
@@ -581,12 +639,12 @@ int main(int argc, char* argv[]){
                                 
 
                                 printf("Connessione stabilita: ora partecipi alla chat di gruppo di %s \n", destinatari->username);
-                                continue;
+                                
 
                             }
                             fflush(stdout);
                         }
-                        continue;
+                        
                     }
                 }
             }
