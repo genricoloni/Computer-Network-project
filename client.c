@@ -159,8 +159,10 @@ int main(int argc, char* argv[]){
                         fflush(stdin);
 
                 if(i == STDIN){
+                    printf("Dentro if stdin\n");
 
                     if (in_chat == true){
+                        printf("Dentro if in_chat\n");
                         struct destinatari *tmp = destinatari;
 
                         //printf("Debug: in chat\n");
@@ -168,6 +170,7 @@ int main(int argc, char* argv[]){
                         //prendo in input il messaggio da inviare
                         fgets(buffer, 1024 - 1, stdin);
                         buffer[strlen(buffer) - 1] = '\0';
+                        printf("Debug: messaggio da inviare: %s\n", buffer);
 
                         //controllo se il messaggio è un comando
                         if(strcmp(buffer, "/q\0") == 0){
@@ -199,9 +202,7 @@ int main(int argc, char* argv[]){
                             inet_pton(AF_INET, "127.0.0.1", &tmp_addr.sin_addr);
                             ret = connect(tmp_sock, (struct sockaddr*)&tmp_addr, sizeof(tmp_addr));
                             //aggiungo il socket alla lista di quelli da controllare
-                            FD_SET(tmp_sock, &master);
-                            if(tmp_sock > fdmax)
-                                fdmax = tmp_sock;
+                            
                                 
 
                             
@@ -216,7 +217,7 @@ int main(int argc, char* argv[]){
 
                             //gli invio la mia porta
                             printf("Debug: invio la mia porta %d\n", atoi(argv[1]));
-                            code_t = htonl(atoi(argv[1]));
+                            code_t = htons(atoi(argv[1]));
                             send(tmp_sock, &code_t, sizeof(uint32_t), 0);
                             
                             printf("Ok connessione col nuovo partecipante dalla mia parte\n");
@@ -295,22 +296,26 @@ int main(int argc, char* argv[]){
 
                         if(client_offline == true && chat_code > 0){
                             int a;
+                            printf("Sono correttamente in chat\n");
                             //devo inviare il messaggio al client
 
                             //invio il messaggio a tutti i destinatari
                             while(tmp != NULL){
                                 int ack;
+                                uint32_t code_t = htonl(CHAT_CODE);
+
+                                printf("Debug: invio il messaggio %s a %s attraverso il socket %d\n", buffer, tmp->username, tmp->socket);
+
 
                                 strcat(buffer, "   ");
                                 strcpy(tmpbuff, "**: ");
-                                
-                                uint32_t code_t = htonl(CHAT_CODE);
-
-                                
-                                //invio codice
-                                a = send(tmp->socket , &code_t, sizeof(uint32_t), 0);
+                                printf("Debug: invio codice\n");
+                                a = send(tmp->socket , (void*)&code_t, sizeof(uint32_t), 0);
+                                printf("Debug: inviato codic con ret %d\n", a);
+                                printf("Debug: inviato codice\n");
 
                                 a = recv(tmp->socket , &ack, sizeof(uint32_t), 0);
+                                printf("Debug: ricevo ack\n");
 
                                 if (a <= 0){
                                     client_offline = false;
@@ -331,18 +336,27 @@ int main(int argc, char* argv[]){
                                         //rimuovo il destinatario dalla lista
                                         printf("Sembra che il client %s sia disconnesso, non riceverà più i messaggi da questa chat di gruppo\n", tmp->username);
                                         rimuovi_destinatario(tmp->username);
+                                        if(destinatari->next == NULL){
+                                            printf("Attenzione: in questa chat di gruppo sono rimasti solo due partecipanti\n");
+                                            continue;
+                                        }
+                                       
                                         if(destinatari == NULL){
                                             printf("Non ci sono più destinatari, la chat di gruppo è terminata\n");
                                             in_group = false;
+                                            in_chat = false;
                                             chat_code = 0;
+                                            wait();
+                                            system("clear");
+                                            print_menu(OWN_USER);
                                             break;
                                         }
+                                        tmp=tmp->next;
                                         continue;
-
-
-                                        
+                                                                               
                                     }
                                 }
+
 
                                 a = send(tmp->socket , OWN_USER, USERN_CHAR, 0);
                                 //ricevo ack
@@ -361,7 +375,8 @@ int main(int argc, char* argv[]){
                                     system("clear");
                                     print_chat(OWN_USER, tmp->username);}
                                 // scorro la lista dei destinatari
-                                tmp = tmp->next;                        }
+                                tmp = tmp->next;                        
+                                }
                                 continue;
                         }
                         
@@ -564,11 +579,10 @@ int main(int argc, char* argv[]){
                                 new_client_socket = socket(AF_INET, SOCK_STREAM, 0);
                                 printf("Dopo socket()\n");
 
+
                                 ret = connect(new_client_socket, (struct sockaddr*)&new_client_addr, sizeof(new_client_addr));
 
-                                inserisci_destinatario(mittente, new_client_socket);
-                                printf("Inserito nuovo destinatario %s\n", destinatari->username);
-
+                                
                                 //invio add code al nuovo client
                                 codeN = htonl(ADD_CODE);
                                 send(new_client_socket, &codeN, sizeof(uint32_t), 0);
@@ -580,8 +594,9 @@ int main(int argc, char* argv[]){
                                 codeN = htons(OWN_PORT);
                                 send(new_client_socket, &codeN, sizeof(uint32_t), 0);
                                 //system("clear");
+                                inserisci_destinatario(mittente, new_client_socket);
                                 printf("Nuovo partecipante alla chat di gruppo: %s\n", mittente);
-                                continue;
+
                             }
                             
                             if(codeN == CHAT_CODE){
@@ -608,11 +623,11 @@ int main(int argc, char* argv[]){
                                     //system("clear");
                                     print_chat(OWN_USER, mittente);
                                 }
-                                continue;
                             
                             }
                             if(codeN == ADD_CODE){
                                 printf("dentro add_code\n");
+                                //LA CONNESSIONE NON VA A BUON FINE, RISOLVI
                                 struct sockaddr_in new_client_addr;
                                 int new_client_socket;
 
@@ -630,10 +645,13 @@ int main(int argc, char* argv[]){
                                 //gestione struct e memoria
                                 memset(&new_client_addr, 0, sizeof(new_client_addr));
                                 new_client_addr.sin_family = AF_INET;
-                                new_client_addr.sin_port = htons(codeN);
+                                new_client_addr.sin_port = htonl(codeN);
                                 inet_pton(AF_INET, "127.0.0.1", &new_client_addr.sin_addr);
                                 new_client_socket = socket(AF_INET, SOCK_STREAM, 0);
 
+                                ret = connect(new_client_socket, (struct sockaddr*)&new_client_addr, sizeof(new_client_addr));
+                                printf("Debug: %d\n", new_client_socket);
+                                
                                 inserisci_destinatario(mittente, new_client_socket);
 
                                 
@@ -642,7 +660,7 @@ int main(int argc, char* argv[]){
                                 
 
                             }
-                            fflush(stdout);
+                            //continue;
                         }
                         
                     }
