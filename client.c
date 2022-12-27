@@ -329,6 +329,7 @@ int main(int argc, char* argv[]){
                                         rimuovi_destinatario(tmp->username);
                                         client_offline = false;
                                         chat_code = 0;
+                                        break;
 
                                     }
                                     else{
@@ -523,7 +524,7 @@ int main(int argc, char* argv[]){
 
                                 //controllo se il mittente è già nella lista dei destinatari
                                 
-                                if(in_chat == false){
+                                if(in_chat == false || strcmp(mittente, destinatari->username) != 0){
                                     //invio ack al mittente
                                     printf("Invio ack al mittente\n");
                                     code_t = htonl(ACK);
