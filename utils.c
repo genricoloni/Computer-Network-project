@@ -1524,7 +1524,7 @@ void send_file(char* file_name, char* OWN_USER){
             break;
         }
 
-        fp = fopen(file_name, "a");
+        fp = fopen(file_name, "r");
 
         while((c = getc(fp)) != EOF){
             i = send(fd_dest, (void*)&c, sizeof(char), 0);
@@ -1540,7 +1540,8 @@ void send_file(char* file_name, char* OWN_USER){
         printf("File inviato a %s\n", tmp->username);
         tmp = tmp->next;
         
-}}
+    }
+}
 
 
 //funzione che notifica al server e ai destinatari che il client si sta disconnettendo

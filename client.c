@@ -679,14 +679,14 @@ int main(int argc, char* argv[]){
                                 printf("Debug: %d\n", codeN);
                                 
                                 //sprintf(path, "%s/media/%s", OWN_USER, buffer);
-                                sprintf(path, "%s/media/", mittente);
+                                sprintf(path, "%s/media/", OWN_USER);
                                 //creo la cartella se già non esiste
                                 if(access(path, F_OK) == -1)
                                     mkdir(path, 0777);
                                 strcat(path, name);
                                 printf("Debug: %s\n", path);
                                 //creo il file
-                                fp = fopen(name, "w");
+                                fp = fopen(path, "w");
                                 if (fp == NULL){
                                     printf("Errore nella creazione del file\n");
                                     exit(1);
