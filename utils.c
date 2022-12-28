@@ -1466,12 +1466,13 @@ int chat_init_c(int code, char* username, int server_sock){
 void send_file(char* file_name, char* OWN_USER){
     struct destinatari *tmp = destinatari;
     int fd_dest, size, i;
-    char c;
+    char c, filename[BUFSIZE];
     uint32_t size_t, code_t;
     FILE *fp;
 
+    strcpy(filename, file_name);
     //apro il file da inviare
-    fp = fopen(file_name, "a");
+    fp = fopen(filename, "a");
     if(fp < 0){
         perror("Errore nell'apertura del file\n");
         return;
@@ -1496,14 +1497,19 @@ void send_file(char* file_name, char* OWN_USER){
         }
 
         //invio il mio username
-        i = send(fd_dest, (void*)&OWN_USER, sizeof(OWN_USER), 0);
+        
+        i = send(fd_dest, OWN_USER, sizeof(OWN_USER), 0);
         if(i == -1){
             printf("Errore nell'invio del file a %s\n", tmp->username);
             break;
         }
 
+        //ricevo conferma
+        i = recv(fd_dest, (void*)&code_t, sizeof(uint32_t), 0);
+        printf("Conferma ricevuta\n");
+
         //invio nome del file
-        i = send(fd_dest, (void*)&file_name, sizeof(file_name), 0);
+        i = send(fd_dest, filename, sizeof(filename), 0);
         if(i == -1){
             printf("Errore nell'invio del file a %s\n", tmp->username);
             break;
@@ -1527,6 +1533,7 @@ void send_file(char* file_name, char* OWN_USER){
                 fclose(fp);
                 break;
             }
+            recv(fd_dest, (void*)&code_t, sizeof(uint32_t), 0);
         }
         fclose(fp);
 

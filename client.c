@@ -501,6 +501,7 @@ int main(int argc, char* argv[]){
                         memset(&buffer, 0, sizeof(buffer));
                         ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);
                         codeN = ntohl(code_t);
+                        printf("codeN: %d\n", codeN);
 
 
 
@@ -655,36 +656,48 @@ int main(int argc, char* argv[]){
                         
                             if(codeN == FILE_CODE){
                                 printf("Dentro FILE_CODE\n");
-                                char c, path[BUFSIZE];
+                                char c, path[BUFSIZE], name[BUFSIZE];
                                 FILE *fp;
 
                                 //ricevo username del mittente
                                 recv(i, mittente, USERN_CHAR, 0);
                                 printf("Debug: %s\n", mittente);
-                                
 
+                                //invio conferma
+                                send(i, &code_t, sizeof(uint32_t), 0);
+
+                                
+                                memset(name, 0, BUFSIZE);
+                                printf("Done memset\n");
                                 //ricevo nome del file
-                                recv(i, buffer, BUFSIZE, 0);
-                                printf("Debug: %s\n", buffer);
+                                recv(i, name, BUFSIZE, 0);
+                                printf("Debug: %s\n", name);
                                 
                                 //ricevo dimensione del file
-                                recv(i, &code_t, sizeof(uint32_t), 0);
+                                recv(i, (void*)&code_t, sizeof(uint32_t), 0);
                                 codeN = ntohl(code_t);
                                 printf("Debug: %d\n", codeN);
                                 
-                                sprintf(path, "%s/media/%s", OWN_USER, buffer);
+                                //sprintf(path, "%s/media/%s", OWN_USER, buffer);
+                                sprintf(path, "%s/media/", mittente);
+                                //creo la cartella se già non esiste
+                                if(access(path, F_OK) == -1)
+                                    mkdir(path, 0777);
+                                strcat(path, name);
                                 printf("Debug: %s\n", path);
                                 //creo il file
-                                fp = fopen(buffer, "w");
+                                fp = fopen(name, "w");
                                 if (fp == NULL){
                                     printf("Errore nella creazione del file\n");
                                     exit(1);
                                 }
 
                                 //ricevo il file
+                                printf("Ricezione file in corso...\n");
                                 while(codeN > 0){
                                     recv(i, (void*)&c, 1, 0);
                                     fputc(c, fp);
+                                    send(i, &code_t, sizeof(uint32_t), 0);
                                     codeN -= 1;
                                 }
                                 fclose(fp);
