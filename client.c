@@ -159,10 +159,8 @@ int main(int argc, char* argv[]){
                         fflush(stdin);
 
                 if(i == STDIN){
-                    printf("Dentro if stdin\n");
 
                     if (in_chat == true){
-                        printf("Dentro if in_chat\n");
                         struct destinatari *tmp = destinatari;
 
                         //printf("Debug: in chat\n");
@@ -180,6 +178,9 @@ int main(int argc, char* argv[]){
                                 rimuovi_tutti_destinatari();
                                 }
                             client_offline = true;
+                            close(tmp->socket);
+                            FD_CLR(tmp->socket, &master);
+                            
                             
                             system("clear");
                             print_menu(OWN_USER);
@@ -264,7 +265,9 @@ int main(int argc, char* argv[]){
                             uint32_t code_t = htonl(MSG_CODE);
 
                             
-                            strcat(buffer, " *");
+                            strcpy(tmpbuff, "       ");
+                            strcat(tmpbuff, buffer);
+                            strcat(tmpbuff, "  *");
 
 
                             //chiamo una funzione che stampa il contenuto di un file
@@ -311,8 +314,9 @@ int main(int argc, char* argv[]){
                                         //non sono in una chat di gruppo
                                         //rimuovo il destinatario dalla lista
                                         //e aggiungo il server alla lista
+                                        strcpy(username, tmp->username);
                                         rimuovi_destinatario(tmp->username);
-                                        inserisci_destinatario(tmp->username, server_com);
+                                        inserisci_destinatario(username, server_com);
                                         client_offline = false;
                                         chat_code = 0;
                                         break;
@@ -324,21 +328,17 @@ int main(int argc, char* argv[]){
                                         printf("Sembra che il client %s sia disconnesso, non riceverà più i messaggi da questa chat di gruppo\n", tmp->username);
                                         rimuovi_destinatario(tmp->username);
                                         if(destinatari->next == NULL){
-                                            printf("Attenzione: in questa chat di gruppo sono rimasti solo due partecipanti\n");
-                                            in_group = false;
-                                            
-                                        }
-                                       
-                                        if(destinatari == NULL){
-                                            printf("Non ci sono più destinatari, la chat di gruppo è terminata\n");
+                                            printf("Attenzione: in questa chat di gruppo sono rimasti solo due partecipanti, la chat di gruppo verrà terminata\n");
                                             in_group = false;
                                             in_chat = false;
+                                            client_offline = false;
                                             chat_code = 0;
                                             wait();
                                             system("clear");
                                             print_menu(OWN_USER);
-                                            break;
+                                            break; 
                                         }
+
                                         tmp=tmp->next;
                                         continue;
                                                                                
@@ -585,7 +585,14 @@ int main(int argc, char* argv[]){
                                     //system("clear");
                                     print_chat(OWN_USER, mittente);
                                 }
-                                printf("Nuovo messaggio da %s\n", mittente);
+                                if (in_chat == false)
+                                    printf("Nuovo messaggio da %s\n", mittente);
+                                else{
+                                    if(in_group == false){
+                                    system("clear");
+                                    print_chat(OWN_USER, mittente);
+                                }
+                                }
                                 
                             
                             }

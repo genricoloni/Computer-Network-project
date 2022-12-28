@@ -1005,7 +1005,6 @@ void append_msg_rcv(char* mittente, char *msg, char*OWN_USER){
     //strcat(buffer, "\0");
 
 
-    printf("Prima della fprintf  di %s\n", buffer);
     fileptr = fopen(path, "a");
     fprintf(fileptr, "%s\n", buffer);
     fclose(fileptr);
@@ -1144,6 +1143,8 @@ int add_partecipant(char* OWN_USER, int server_socket, char* aggiunto){
     while (tmp > 0){
         recv(server_socket, user, USERN_CHAR, 0);
         //controllo se user è già nella lista destinatari
+        head = destinatari;
+
         while(head != NULL){
             if(strcmp(head->username, user) == 0 || strcmp(user, OWN_USER) == 0){
                 break;
