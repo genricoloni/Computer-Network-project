@@ -1459,10 +1459,81 @@ int chat_init_c(int code, char* username, int server_sock){
         //aggiungo l'utente alla lista dei destinatari
         return port;
     }
-    
-
-
 }
+
+
+//funzione che si occupa dell'invio di un file ad uno o più destinatari
+void send_file(char* file_name, char* OWN_USER){
+    struct destinatari *tmp = destinatari;
+    int fd_dest, size, i;
+    char c;
+    uint32_t size_t, code_t;
+    FILE *fp;
+
+    //apro il file da inviare
+    fp = fopen(file_name, "a");
+    if(fp < 0){
+        perror("Errore nell'apertura del file\n");
+        return;
+    }
+    fseek(fp, 0L, SEEK_END);
+    size = ftell(fp);
+    printf("Dimensione del file: %d\n", size);
+
+    fclose(fp);
+
+    //invio il file a tutti i destinatari
+    while(tmp != NULL){
+        fd_dest = tmp->socket;
+
+        //invio codice dell'invio file al client
+        code_t = htonl(FILE_CODE);
+        i = send(fd_dest, (void*)&code_t, sizeof(uint32_t), 0);
+
+        if(i == -1){
+            printf("Errore nell'invio del file a %s\n", tmp->username);
+            break;
+        }
+
+        //invio il mio username
+        i = send(fd_dest, (void*)&OWN_USER, sizeof(OWN_USER), 0);
+        if(i == -1){
+            printf("Errore nell'invio del file a %s\n", tmp->username);
+            break;
+        }
+
+        //invio nome del file
+        i = send(fd_dest, (void*)&file_name, sizeof(file_name), 0);
+        if(i == -1){
+            printf("Errore nell'invio del file a %s\n", tmp->username);
+            break;
+        }
+        
+        //invio prima la dimensione del file
+        size_t = htonl(size);
+        i = send(fd_dest, (void*)&size_t, sizeof(uint32_t), 0);
+
+        if(i == -1){
+            printf("Errore nell'invio del file a %s\n", tmp->username);
+            break;
+        }
+
+        fp = fopen(file_name, "a");
+
+        while((c = getc(fp)) != EOF){
+            i = send(fd_dest, (void*)&c, sizeof(char), 0);
+            if(i == -1){
+                printf("Errore nell'invio del file a %s\n", tmp->username);
+                fclose(fp);
+                break;
+            }
+        }
+        fclose(fp);
+
+        printf("File inviato a %s\n", tmp->username);
+        tmp = tmp->next;
+        
+}}
 
 
 //funzione che notifica al server e ai destinatari che il client si sta disconnettendo

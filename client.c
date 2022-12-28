@@ -186,6 +186,29 @@ int main(int argc, char* argv[]){
                             print_menu(OWN_USER);
                             continue;
                         }
+                        
+                        if(strcmp(buffer, "/file\0") == 0){
+                            if(client_offline == false){
+                                printf("Non puoi inviare file ad un client non connesso!\n");
+                                continue;
+                            }
+                            printf("Nome del file da inviare: ");
+                            //prendo in input il nome del file da inviare
+                            fgets(buffer, 1024 - 1, stdin);
+                            buffer[strlen(buffer) - 1] = '\0';
+
+                            //controllo se il file esiste
+                            if(access(buffer, F_OK) != -1){
+                                printf("Debug: file esiste\n");
+                                //invio il file
+                                send_file(buffer, OWN_USER);
+                            }
+                            else{
+                                printf("Il file non esiste\n");
+                            }
+                            continue;
+                        }
+
                         if(strcmp(buffer, "/u\0") == 0){
                             //aggiungo una variabile dove mi troverò l'username che inserisco dentro la funzione
                             int tmp_port = add_partecipant(OWN_USER, server_com, username);
@@ -596,6 +619,7 @@ int main(int argc, char* argv[]){
                                 
                             
                             }
+                            
                             if(codeN == ADD_CODE){
                                 struct sockaddr_in new_client_addr;
                                 int new_client_socket;
@@ -626,6 +650,45 @@ int main(int argc, char* argv[]){
 
                                 printf("Connessione stabilita: ora partecipi alla chat di gruppo di %s \n", destinatari->username);
                                 
+
+                            }
+                        
+                            if(codeN == FILE_CODE){
+                                printf("Dentro FILE_CODE\n");
+                                char c, path[BUFSIZE];
+                                FILE *fp;
+
+                                //ricevo username del mittente
+                                recv(i, mittente, USERN_CHAR, 0);
+                                printf("Debug: %s\n", mittente);
+                                
+
+                                //ricevo nome del file
+                                recv(i, buffer, BUFSIZE, 0);
+                                printf("Debug: %s\n", buffer);
+                                
+                                //ricevo dimensione del file
+                                recv(i, &code_t, sizeof(uint32_t), 0);
+                                codeN = ntohl(code_t);
+                                printf("Debug: %d\n", codeN);
+                                
+                                sprintf(path, "%s/media/%s", OWN_USER, buffer);
+                                printf("Debug: %s\n", path);
+                                //creo il file
+                                fp = fopen(buffer, "w");
+                                if (fp == NULL){
+                                    printf("Errore nella creazione del file\n");
+                                    exit(1);
+                                }
+
+                                //ricevo il file
+                                while(codeN > 0){
+                                    recv(i, (void*)&c, 1, 0);
+                                    fputc(c, fp);
+                                    codeN -= 1;
+                                }
+                                fclose(fp);
+                                printf("File ricevuto da %s\n", mittente);
 
                             }
                         }
