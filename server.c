@@ -91,7 +91,6 @@ int main(int argc, char* argv[]){
 
                         FD_SET(communicate, &master);
 
-                        printf("Nuova connessione \n");
                     }
                     else{
                         
@@ -103,6 +102,8 @@ int main(int argc, char* argv[]){
                             
                             // il client ha chiuso il socket, quindi
                             // chiudo il socket connesso sul server
+
+                            printf("UTENTE %s DISCONNESSO\n", get_username(i));
                             out_s(get_username(i));
                             close(i);
                             rimuovi_utente(&utenti_online, i);
@@ -111,7 +112,7 @@ int main(int argc, char* argv[]){
                             // rimuovo il descrittore newfd da quelli da monitorare
                             FD_CLR(i, &master);
 
-                            printf("CHIUSURA client %d rilevata!\n", i);
+                            
                             
                             fflush(stdout);
                             continue;
@@ -125,8 +126,6 @@ int main(int argc, char* argv[]){
                         case SIGNUP_CODE:
                             //codice riconosciuto
                             signup_s(i);
-                            printf("signup completata\n");
-                            //system("clear");
                             
                             break;
                         case IN_CODE:
@@ -142,7 +141,6 @@ int main(int argc, char* argv[]){
                             break;
 
                         case SHOW_CODE:
-                            printf("Debug: SHOW_CODE\n");
                             show_s(i);
                             break;
                         

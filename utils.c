@@ -467,7 +467,6 @@ bool login_s(int sock, struct utenti_online **testa){
     //ricevo le credenziali
     recv(sock, (void*)&cred, msg_len, 0);
 
-    printf("RICEVUTE CREDENZIALI UTENTE %s\n", cred.username);
     //controllo correttezza credenziali
     if(check_login_utente(cred) == false){
         //le credenziali non sono corrette
@@ -530,7 +529,6 @@ void chat_s(int socket){
     //ricevo username del destinatario
     recv(socket, (void*)&cred, sizeof(cred), 0);
     strcpy(destinatario, cred.username);
-    printf("RICEVUTO USERNAME DESTINATARIO: %s\n", destinatario);
 
     //verifico che il destinatario esista
 
@@ -695,7 +693,6 @@ void hanging_s(int socket){
     }
     fclose(fp);
     fp = fopen(path, "r");
-    printf("line count: %d\n", line_count);
     count_t = htonl(line_count);
     send(socket, (void*)&count_t, sizeof(uint32_t), 0);
     if (line_count == 0){
@@ -779,7 +776,6 @@ void show_s(int socket){
             line_count++;
     }
     fclose(fp);
-    printf("line count: %d\n", line_count);
     //invio il numero di messaggi
     count_t = htonl(line_count);
     send(socket, (void*)&count_t, sizeof(uint32_t), 0);
@@ -996,7 +992,20 @@ void append_msg_rcv(char* mittente, char *msg, char*OWN_USER){
 
     strcpy(path, "./");
     strcat(path, OWN_USER);
+    //controllo che la cartella esista, altrimenti la creo
+    if(access(path, F_OK) == 0){
+    }
+    else{
+        mkdir(path, 0777);
+        
+    }
     strcat(path, "/chat/");
+    if(access(path, F_OK) == 0){
+    }
+    else{
+        mkdir(path, 0777);
+        
+    }
     strcat(path, mittente);
     strcat(path, ".txt");
 
@@ -1004,8 +1013,12 @@ void append_msg_rcv(char* mittente, char *msg, char*OWN_USER){
     strncat(buffer, msg, strlen(msg)-1);
     //strcat(buffer, "\0");
 
-
-    fileptr = fopen(path, "a");
+    if(access(path, F_OK) == 0){
+        fileptr = fopen(path, "a");
+    }
+    else{
+        fileptr = fopen(path, "w");        
+    }
     fprintf(fileptr, "%s\n", buffer);
     fclose(fileptr);
 }
@@ -1110,8 +1123,7 @@ void print_menu(char* OWN_USER){
     printf("1)hanging                   -->ricevi i messaggi pendenti quando eri offline\n");
     printf("2)show  username            -->mostra i messaggi inviati da username\n");
     printf("3)chat  username            -->avvia una chat con username\n");
-    printf("4)share username file_name  -->condividi il file file_name con tutti gli utenti connessi\n");
-    printf("5)out                       -->disconnetti l'utente\n");
+    printf("4)out                       -->disconnetti l'utente\n");
 
 }
 
@@ -1129,7 +1141,9 @@ int add_partecipant(char* OWN_USER, int server_socket, char* aggiunto){
     system("clear");
     printf("UTENTI ATTUALMENTE CONNESSI;\n");
     code_t = htonl(ADD_CODE);
-    send(server_socket, (void*)&code_t, sizeof(uint32_t), 0);
+    if(send(server_socket, (void*)&code_t, sizeof(uint32_t), 0) < 0){
+        printf("Server non raggiungibile, impossibile svolgere ora questa operazione\n");
+    }
 
     //ricevo ack
     recv(server_socket, (void*)&code_t, sizeof(uint32_t), 0);
@@ -1161,7 +1175,10 @@ int add_partecipant(char* OWN_USER, int server_socket, char* aggiunto){
     strcpy(partecipante, aggiunto);
 
     //invio il nome dell'utente da aggiungere
-    send(server_socket, partecipante, USERN_CHAR, 0);
+    if(send(server_socket, partecipante, USERN_CHAR, 0) <0){
+        printf("Errore nell'aggiunta del partecipante\n");
+        return -1;
+    }
 
     //ricevo la porta del destinatario
     recv(server_socket, (void*)&code_t, sizeof(uint32_t), 0);
@@ -1201,7 +1218,7 @@ bool signup_c(int code, struct credenziali credenziali, int sock){
     ack = ntohl(code_t);
 
     if(ack != ACK){
-        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        printf("SERVER OFFLINE, CHIUSURA DELL'APPLICAZIONE\n");
         exit(-1);
     }
 
@@ -1238,7 +1255,7 @@ bool login_c(int code, struct credenziali credenziali, int sock, int port){
     ack = ntohl(code_t);
 
     if(ack != ACK){
-        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        printf("SERVER OFFLINE, CHIUSURA DELL'APPLICAZIONE\n");
         exit(-1);
     }
 
@@ -1278,7 +1295,10 @@ void hanging_c(int code, int sock){
     code_t = htonl(code);
 
     //invio del codice al server
-    send(sock, (void*)&code_t, msg_len, 0);
+    if(send(sock, (void*)&code_t, msg_len, 0) < 0){
+        printf("SERVER OFFLINE, CHIUSURA DELL'APPLICAZIONE\n");
+        exit(-1);
+    }
 
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
@@ -1286,7 +1306,7 @@ void hanging_c(int code, int sock){
 
     
     if(ack != ACK){
-        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        printf("SERVER OFFLINE, CHIUSURA DELL'APPLICAZIONE\n");
         exit(-1);
     }
 
@@ -1335,7 +1355,10 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
     code_t = htonl(code);
 
     //invio del codice al server
-    send(sock, (void*)&code_t, msg_len, 0);
+    if(send(sock, (void*)&code_t, msg_len, 0) < 0){
+        printf("SERVER OFFLINE, CHIUSURA DELL'APPLICAZIONE\n");
+        exit(-1);
+    }
 
     //aspetto conferma
     recv(sock, (void*)&code_t, sizeof(uint32_t), 0);
@@ -1343,7 +1366,7 @@ void show_c(int code, char *utente, int sock, char* OWN_USER){
 
     
     if(ack != ACK){
-        perror("Errore in fase di comunicazione, riavvio dell'applicazione necessario\n");
+        printf("SERVER OFFLINE, CHIUSURA DELL'APPLICAZIONE\n");
         exit(-1);
     }
 
@@ -1406,17 +1429,19 @@ int chat_init_c(int code, char* username, int server_sock){
     code_t = htonl(code);
     
     //invio codice al server
-    send(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
+    if(send(server_sock, (void*)&code_t, sizeof(uint32_t), 0) < 0)
+        return -2;
 
     //aspetto conferma
     recv(server_sock, (void*)&code_t, sizeof(uint32_t), 0);
+      
     ack = ntohl(code_t);
-
+/*
     if(ack != ACK){
         perror("Errore in fase di comunicazione col server\n");
         return -1;
     }
-    
+ */   
     //invio il nome dell'utente con cui si vuole chattare
     strcpy(cred.username, username);
     
@@ -1467,7 +1492,7 @@ void send_file(char* file_name, char* OWN_USER){
     struct destinatari *tmp = destinatari;
     int fd_dest, size, i;
     char c, filename[BUFSIZE];
-    uint32_t size_t, code_t;
+    uint32_t code_t;
     FILE *fp;
 
     strcpy(filename, file_name);
@@ -1479,7 +1504,7 @@ void send_file(char* file_name, char* OWN_USER){
     }
     fseek(fp, 0L, SEEK_END);
     size = ftell(fp);
-    printf("Dimensione del file: %d\n", size);
+    printf("Dimensione del file: %d Byte\n ", size);
 
     fclose(fp);
 
@@ -1506,7 +1531,6 @@ void send_file(char* file_name, char* OWN_USER){
 
         //ricevo conferma
         i = recv(fd_dest, (void*)&code_t, sizeof(uint32_t), 0);
-        printf("Conferma ricevuta\n");
 
         //invio nome del file
         i = send(fd_dest, filename, sizeof(filename), 0);
@@ -1514,19 +1538,10 @@ void send_file(char* file_name, char* OWN_USER){
             printf("Errore nell'invio del file a %s\n", tmp->username);
             break;
         }
-        
-        //invio prima la dimensione del file
-        size_t = htonl(size);
-        i = send(fd_dest, (void*)&size_t, sizeof(uint32_t), 0);
-
-        if(i == -1){
-            printf("Errore nell'invio del file a %s\n", tmp->username);
-            break;
-        }
-
+                
         fp = fopen(file_name, "r");
 
-        while((c = getc(fp)) != EOF){
+        /*while((c = getc(fp)) != EOF){
             i = send(fd_dest, (void*)&c, sizeof(char), 0);
             if(i == -1){
                 printf("Errore nell'invio del file a %s\n", tmp->username);
@@ -1534,7 +1549,16 @@ void send_file(char* file_name, char* OWN_USER){
                 break;
             }
             recv(fd_dest, (void*)&code_t, sizeof(uint32_t), 0);
+        }*/
+        while (true){
+            c = getc(fp);
+            send(fd_dest, (void*)&c, sizeof(char), 0);
+            if(c == EOF)
+                break;
         }
+        
+
+
         fclose(fp);
 
         printf("File inviato a %s\n", tmp->username);

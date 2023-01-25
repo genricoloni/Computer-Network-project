@@ -17,6 +17,7 @@ int main(int argc, char* argv[]){
 
     bool connected = false, conn_error = false, cmd_err = false, su = true, reg = false, in = false, login = true;
     bool client_offline = false, in_chat = false, in_group = false;
+    bool server_online = false;
 
     // strutture per indirizzi
     struct sockaddr_in server_addr, client_addr, cl_listener_addr, gp_addr;
@@ -44,6 +45,7 @@ int main(int argc, char* argv[]){
 
     //aggiungp il socket appena creato alla lista dei socket da monitorare
     FD_SET(STDIN, &master);
+    FD_SET(server_com, &master);
 
 	
 
@@ -105,13 +107,16 @@ int main(int argc, char* argv[]){
             //mi connetto al server usando la porta inserita in input
             server_addr.sin_port = htons(atoi(port));
 
-            ret = connect(server_com, (struct sockaddr*)&server_addr, sizeof(server_addr));
+            //ret = connect(server_com, (struct sockaddr*)&server_addr, sizeof(server_addr));
 
-            if (ret < 0){
-                conn_error = true;
-                system("clear");
-                continue;            
+            if (connect(server_com, (struct sockaddr*)&server_addr, sizeof(server_addr)) < 0){
+                printf("Errore in fase di connessione col server, verificare la porta oppure potrebbe essere offline;\n");    
+                return -1;       
             }
+
+            //aggiungo il socket del server a quelli da monitorare
+
+            
             
             connected = true;
             printf("<<<<<<<<<<<<<<<<<<<<<<<<CONNESSIONE RIUSCITA>>>>>>>>>>>>>>>>>>>>>>>>>>>>>\n");
@@ -121,6 +126,7 @@ int main(int argc, char* argv[]){
             case SIGNUP_CODE: 
                 reg = signup_c(code, credenziali, server_com);
                 su = reg;
+                login = !reg;
                 system("clear");
                 break;
 
@@ -148,6 +154,7 @@ int main(int argc, char* argv[]){
 
     code = -4;
     client_offline = true;
+    server_online = true;
 
     while(1){
         readfds = master;
@@ -163,7 +170,6 @@ int main(int argc, char* argv[]){
                     if (in_chat == true){
                         struct destinatari *tmp = destinatari;
 
-                        //printf("Debug: in chat\n");
 
                         //prendo in input il messaggio da inviare
                         fgets(buffer, 1024 - 1, stdin);
@@ -177,9 +183,12 @@ int main(int argc, char* argv[]){
                             if(client_offline == true){
                                 rimuovi_tutti_destinatari();
                                 }
+                                else{
+                                    //rimuovo l'elemento in testa della lista
+                                    rimuovi_destinatario(tmp->username);
+                                                                       
+                                }
                             client_offline = true;
-                            close(tmp->socket);
-                            FD_CLR(tmp->socket, &master);
                             
                             
                             system("clear");
@@ -199,7 +208,6 @@ int main(int argc, char* argv[]){
 
                             //controllo se il file esiste
                             if(access(buffer, F_OK) != -1){
-                                printf("Debug: file esiste\n");
                                 //invio il file
                                 send_file(buffer, OWN_USER);
                             }
@@ -210,6 +218,11 @@ int main(int argc, char* argv[]){
                         }
 
                         if(strcmp(buffer, "/u\0") == 0){
+
+                            if(server_online == false){
+                                printf("Non puoi aggiungere utenti se il server è offline!\n");
+                                continue;
+                            }
                             //aggiungo una variabile dove mi troverò l'username che inserisco dentro la funzione
                             int tmp_port = add_partecipant(OWN_USER, server_com, username);
 
@@ -234,14 +247,12 @@ int main(int argc, char* argv[]){
                             
                             //gli invio il codice di chat di gruppo
                             code_t = htonl(ADD_CODE);
-                            printf("Debug: codice inviato al nuovo partecipante %d\n", ntohl(code_t));
                             send(tmp_sock, &code_t, sizeof(uint32_t), 0);
 
                             //gli invio il mio username
                             send(tmp_sock, &OWN_USER, sizeof(mittente), 0);
 
                             //gli invio la mia porta
-                            printf("Debug: invio la mia porta %d\n", atoi(argv[1]));
                             code_t = htons(atoi(argv[1]));
                             send(tmp_sock, &code_t, sizeof(uint32_t), 0);
                             
@@ -300,7 +311,12 @@ int main(int argc, char* argv[]){
                             memset(tmpbuff, 0, sizeof(tmpbuff));
 
                             //invio il codice di messaggio
-                            send(server_com, &code_t, sizeof(uint32_t), 0);
+                            if(send(server_com, &code_t, sizeof(uint32_t), 0) < 0){
+                                printf("SERVER OFFLINE\n");
+                                printf("Premi un tasto per uscire\n");
+                                getchar();
+                                exit(1);
+                                }
 
 
                             //invio il mittente
@@ -349,19 +365,20 @@ int main(int argc, char* argv[]){
                                         //sono in una chat di gruppo
                                         //rimuovo il destinatario dalla lista
                                         printf("Sembra che il client %s sia disconnesso, non riceverà più i messaggi da questa chat di gruppo\n", tmp->username);
-                                        rimuovi_destinatario(tmp->username);
-                                        if(destinatari->next == NULL){
+                                        if (tmp != NULL)
+                                            rimuovi_destinatario(tmp->username);
+                                        if(destinatari->next == NULL || tmp == NULL){
                                             printf("Attenzione: in questa chat di gruppo sono rimasti solo due partecipanti, la chat di gruppo verrà terminata\n");
                                             in_group = false;
                                             in_chat = false;
                                             client_offline = false;
                                             chat_code = 0;
+                                            rimuovi_tutti_destinatari();
                                             wait();
                                             system("clear");
                                             print_menu(OWN_USER);
                                             break; 
                                         }
-
                                         tmp=tmp->next;
                                         continue;
                                                                                
@@ -419,9 +436,16 @@ int main(int argc, char* argv[]){
                             break;
 
                         case CHAT_CODE:
+                            
                             chat_code = chat_init_c(code, username, server_com);
                             //gestione struct e memoria
                             fflush(stdin);
+
+                            if (chat_code == -2){
+                                client_offline = false;
+                                printf("Il server è offline, impossibile svolgere ora questa operazione\n");
+                                exit(1);
+                            }
 
                             if (chat_code == -1){
                                 client_offline = false;
@@ -455,8 +479,7 @@ int main(int argc, char* argv[]){
                             in_chat = true;
 
                             system("clear");
-                            printf("path: %s\n", path);
-
+                            printf("CHAT CON %s\n", username);
                             print_chat(OWN_USER, destinatari->username);
                             break;
 
@@ -501,13 +524,15 @@ int main(int argc, char* argv[]){
                         memset(&buffer, 0, sizeof(buffer));
                         ret = recv(i, (void*)&code_t, sizeof(uint32_t), 0);
                         codeN = ntohl(code_t);
-                        printf("codeN: %d\n", codeN);
 
 
 
                         if(ret <= 0){
                             if(ret == 0){
-                                printf("Connessione chiusa da %s:%d\n", inet_ntoa(cl_listener_addr.sin_addr), ntohs(cl_listener_addr.sin_port));
+                                if(i == ntohl(server_com)){
+                                    printf("Connessione chiusa dal server\n");
+                                    server_online = false;
+                                }
 
                             } else{
                                 printf("Errore in fase di ricezione del messaggio");
@@ -517,6 +542,7 @@ int main(int argc, char* argv[]){
                         } else{
                             
                             if (codeN == GROUP_CODE){
+                                
                                 
                                 //ricevo username mittente
                                 recv(i, mittente, sizeof(mittente), 0);
@@ -655,36 +681,32 @@ int main(int argc, char* argv[]){
                             }
                         
                             if(codeN == FILE_CODE){
-                                printf("Dentro FILE_CODE\n");
                                 char c, path[BUFSIZE], name[BUFSIZE];
                                 FILE *fp;
 
                                 //ricevo username del mittente
                                 recv(i, mittente, USERN_CHAR, 0);
-                                printf("Debug: %s\n", mittente);
 
                                 //invio conferma
                                 send(i, &code_t, sizeof(uint32_t), 0);
 
                                 
                                 memset(name, 0, BUFSIZE);
-                                printf("Done memset\n");
                                 //ricevo nome del file
                                 recv(i, name, BUFSIZE, 0);
-                                printf("Debug: %s\n", name);
                                 
-                                //ricevo dimensione del file
-                                recv(i, (void*)&code_t, sizeof(uint32_t), 0);
-                                codeN = ntohl(code_t);
-                                printf("Debug: %d\n", codeN);
-                                
+                                                                
                                 //sprintf(path, "%s/media/%s", OWN_USER, buffer);
+                                sprintf(path, "./%s", OWN_USER);
+                                //creo la cartella se già non esiste
+                                if(access(path, F_OK) == -1)
+                                    mkdir(path, 0777);
+                                strcat(path, "/media/");
                                 sprintf(path, "%s/media/", OWN_USER);
                                 //creo la cartella se già non esiste
                                 if(access(path, F_OK) == -1)
                                     mkdir(path, 0777);
                                 strcat(path, name);
-                                printf("Debug: %s\n", path);
                                 //creo il file
                                 fp = fopen(path, "w");
                                 if (fp == NULL){
@@ -694,12 +716,23 @@ int main(int argc, char* argv[]){
 
                                 //ricevo il file
                                 printf("Ricezione file in corso...\n");
-                                while(codeN > 0){
+
+                                while(true){
                                     recv(i, (void*)&c, 1, 0);
+                                    if (c == EOF)
+                                        break;
+                                    fputc(c, fp);
+                                    
+                                }
+                                /*
+                                while(codeN >= 0){
+                                    recv(i, (void*)&c, 1, 0);
+                                    if (c == EOF)
+                                        break;
                                     fputc(c, fp);
                                     send(i, &code_t, sizeof(uint32_t), 0);
                                     codeN -= 1;
-                                }
+                                }*/
                                 fclose(fp);
                                 printf("File ricevuto da %s\n", mittente);
 
